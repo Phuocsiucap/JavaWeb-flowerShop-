@@ -1,0 +1,42 @@
+flower-shop/
+├── public/
+│   ├── index.html
+│   ├── favicon.ico
+│   └── ...
+├── src/
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Header.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   └── ScrollToTop.jsx
+│   │   ├── home/
+│   │   │   ├── Banner.jsx
+│   │   │   ├── Categories.jsx
+│   │   │   ├── FeaturedProducts.jsx
+│   │   │   ├── Occasions.jsx
+│   │   │   ├── Testimonials.jsx
+│   │   │   ├── Features.jsx
+│   │   │   └── Newsletter.jsx
+│   │   └── ui/
+│   │       ├── ProductCard.jsx
+│   │       └── ...
+│   ├── pages/
+│   │   ├── HomePage.jsx
+│   │   ├── ProductPage.jsx
+│   │   └── ...
+│   ├── contexts/
+│   │   ├── CartContext.jsx
+│   │   └── AuthContext.jsx
+│   ├── hooks/
+│   │   └── useWindowSize.jsx
+│   ├── utils/
+│   │   ├── formatPrice.js
+│   │   └── ...
+│   ├── App.jsx
+│   └── index.js
+├── package.json
+└── ...
+
+
+
+https://claude.ai/chat/8d8f819f-6416-4ae6-8902-789030b1299d
