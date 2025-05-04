@@ -1,0 +1,97 @@
+Tuyệt vời, nếu anh đang dùng **Servlet để dựng backend** cho website bán hoa thì đây là một lựa chọn khá ổn nếu anh muốn giữ mọi thứ thuần Java và dễ triển khai với các server như Tomcat.
+
+Dưới đây là **outline backend dùng Servlet** cho dự án bán hoa:
+
+---
+
+## 🌸 **Backend Outline – Dùng Servlet (Java)**
+
+### 1. **Công nghệ sử dụng**
+- Java Servlet (Servlet API)
+- JDBC hoặc JPA (Hibernate)
+- MySQL hoặc PostgreSQL
+- Apache Tomcat
+- JSP (nếu cần template cho admin)
+- JSON cho API (RESTful)
+- Maven/Gradle (quản lý dependency)
+
+---
+
+### 2. **Cấu trúc thư mục**
+```
+FlowerShopBackend/
+├── src/
+│   └── com/flowershop/
+│       ├── controllers/   (Servlets)
+│       ├── models/        (JavaBeans / Entity)
+│       ├── dao/           (Data Access Object)
+│       ├── services/      (Business Logic)
+│       ├── utils/         (JWT, DB utils, helpers)
+│       └── filters/       (AuthFilter, CORS filter)
+├── web/
+│   └── WEB-INF/
+│       └── web.xml
+├── pom.xml / build.gradle
+```
+src/
+ └── main/
+      └── java/
+           └── com/example/project/
+                ├── controllers/
+                │    └── AuthController.java
+                ├── dtos/
+                │    └── UserDTO.java
+                ├── filters/
+                │    └── AuthFilter.java
+                ├── mappers/
+                │    └── UserMapper.java
+                ├── models/
+                │    └── User.java
+                ├── service/
+                │    └── UserService.java
+                ├── utils/
+                │    ├── FirebaseUtil.java
+                │    └── DBUtil.java
+pom.xml
+---
+
+### 3. **Các chức năng chính**
+#### 🔐 **Auth**
+- `POST /login` – đăng nhập
+- `POST /register` – đăng ký
+- `GET /profile` – xem thông tin cá nhân
+
+#### 🌸 **Sản phẩm**
+- `GET /products` – lấy danh sách hoa
+- `GET /products/:id` – chi tiết hoa
+- `POST /products` – thêm hoa (admin)
+- `PUT /products/:id` – cập nhật
+- `DELETE /products/:id` – xóa
+
+#### 📦 **Giỏ hàng**
+- `POST /cart/add` – thêm vào giỏ
+- `GET /cart` – xem giỏ
+- `DELETE /cart/remove/:id` – xóa khỏi giỏ
+
+#### 🛒 **Đơn hàng**
+- `POST /orders` – tạo đơn hàng
+- `GET /orders` – xem đơn hàng người dùng
+- `GET /admin/orders` – admin xem tất cả đơn
+
+#### 📂 **Danh mục**
+- `GET /categories`
+- `POST /categories` (admin)
+
+---
+
+### 4. **Gợi ý database**
+- Bảng `users`, `products`, `categories`, `orders`, `order_items`, `cart_items`
+
+---
+
+Nếu muốn mình có thể tạo cho anh mẫu code Servlet cho các chức năng như:
+- Đăng nhập với JWT
+- Lấy danh sách sản phẩm (dạng API trả JSON)
+- Cấu hình servlet với CORS
+
+Anh cần mẫu phần nào trước?
