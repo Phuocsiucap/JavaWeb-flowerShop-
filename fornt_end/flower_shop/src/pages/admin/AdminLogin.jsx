@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthContext } from "../contexts/AuthContext";  // Import AuthContext
+import { AdminContext } from "../../contexts/AdminContext";  // Import AdminContext
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -9,18 +9,18 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Lấy login từ AuthContext
-  const { login } = useContext(AuthContext);
+  // Lấy login từ AdminContext
+  const { login } = useContext(AdminContext);
 
   const loginWithEmail = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const userData = await login(email, password);  // Gọi login từ AuthContext
+      const userData = await login(email, password);  // Gọi login từ AdminContext
 
       if (userData) {
-        navigate("/");  // Nếu đăng nhập thành công, điều hướng về trang chủ
+        navigate("/admin/home");  // Nếu đăng nhập thành công, điều hướng về trang chủ
       }
     } catch (err) {
       setError("Đăng nhập thất bại");
@@ -85,12 +85,6 @@ const LoginPage = () => {
           >
             {isLoading ? "Đang xử lý..." : "Đăng nhập"}
           </button>
-          <Link
-            to="/register"
-            className="w-full block text-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md"
-          >
-            Đăng ký tài khoản
-          </Link>
         </div>
       </div>
     </div>
