@@ -18,12 +18,23 @@ flower-shop/
 │   │   │   ├── Features.jsx
 │   │   │   └── Newsletter.jsx
 │   │   └── ui/
-│   │       ├── ProductCard.jsx
-│   │       └── ...
+│   │   |   ├── ProductCard.jsx
+│   │   |   └── ...
+|   │   ├── Auth/
+|   │      ├── LoginForm.jsx
+|   │      ├── RegisterForm.jsx
+|   │      └── ForgotPasswordForm.jsx
+|   |
 │   ├── pages/
 │   │   ├── HomePage.jsx
 │   │   ├── ProductPage.jsx
+|   |   ├── LoginPage.jsx
+│   |   ├── RegisterPage.jsx
+│   |   └── ForgotPasswordPage.jsx
 │   │   └── ...
+|   |
+|   ├── services/
+|   │   └── authService.js
 │   ├── contexts/
 │   │   ├── CartContext.jsx
 │   │   └── AuthContext.jsx
@@ -40,3 +51,25 @@ flower-shop/
 
 
 https://claude.ai/chat/8d8f819f-6416-4ae6-8902-789030b1299d
+
+
+
+
+const flower = {
+  id: 1,
+  name: "Hoa hồng đỏ",
+  description: "Hoa hồng đỏ tươi, biểu tượng của tình yêu mãnh liệt.",
+  price: 150000,
+  imageUrl: "https://example.com/hinh-hoa-hong.jpg",
+  category: "Hoa sinh nhật",
+  color: "Đỏ",
+  availability: true,
+  occasion: ["Sinh nhật", "Cưới hỏi"],
+  rating: 4.5,
+  stock: 50,
+  createdAt: "2025-04-21",
+  updatedAt: "2025-04-22",
+  discount: 10,
+  isFeatured: true,
+  seller: "Cửa hàng hoa Tươi"
+};
