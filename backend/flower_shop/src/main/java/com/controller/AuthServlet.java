@@ -4,6 +4,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dao.UserDao;
 import com.dto.request.LoginRequest;
 import com.dto.request.RegisterRequest;
+import com.dto.request.UpdateRequest;
 import com.dto.response.AuthResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.model.User;
@@ -86,30 +87,25 @@ public class AuthServlet extends HttpServlet {
             String authHeader = req.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                Optional<User> userOptional = authService.getUserFromToken(token);
-                if (userOptional.isPresent()) {
-                    User userFromToken = userOptional.get();
-                    User updatedData = objectMapper.readValue(req.getInputStream(), User.class);
+                try {
+                    UpdateRequest request = objectMapper.readValue(req.getInputStream(), UpdateRequest.class);
+                    AuthResponse response = authService.update(request, token);
 
-                    // Cập nhật dữ liệu profile mới
-                    userFromToken.setName(updatedData.getName());
-                    userFromToken.setPhone(updatedData.getPhone());
-                    userFromToken.setAddress(updatedData.getAddress());
-
-                    // Cập nhật thông tin người dùng trong cơ sở dữ liệu
-                    new UserDao().update(userFromToken);
-                    sendJsonResponse(resp, userFromToken);
-                } else {
-                    sendErrorResponse(resp, "Invalid or expired token");
+                    resp.setContentType("application/json");
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    resp.getWriter().write(objectMapper.writeValueAsString(response));
+                } catch (Exception e) {
+                    sendErrorResponse(resp, "Invalid request body: " + e.getMessage());
                 }
             } else {
-                sendErrorResponse(resp, "Missing Authorization header");
+                sendErrorResponse(resp, "Missing or invalid Authorization header");
             }
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("Endpoint not found");
         }
     }
+
 
 
     private void sendJsonResponse(HttpServletResponse response, Object data) throws IOException {
