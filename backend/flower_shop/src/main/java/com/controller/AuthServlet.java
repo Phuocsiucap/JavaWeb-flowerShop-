@@ -1,6 +1,6 @@
 package com.controller;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
+
 import com.dao.UserDao;
 import com.dto.request.LoginRequest;
 import com.dto.request.RegisterRequest;
