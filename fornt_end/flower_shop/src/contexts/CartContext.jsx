@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from '../axiosInstance'; // Đường dẫn phù hợp với project của bạn
-
+import Cookies from 'js-cookie';
 // Khởi tạo context
 export const CartContext = createContext();
 
@@ -9,10 +9,8 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]); // Lưu danh sách CartItem
   const [loading, setLoading] = useState(true);
 
-  // Lấy giỏ hàng và items từ backend khi component mount
-  useEffect(() => {
-    const fetchCart = async () => {
-      const token = localStorage.getItem('token');
+  const fetchCart = async () => {
+      const token = Cookies.get('token');
       if (token) {
         try {
           const res = await axios.get('/api/cart', {
@@ -29,35 +27,41 @@ export const CartProvider = ({ children }) => {
       }
       setLoading(false);
     };
+  // Lấy giỏ hàng và items từ backend khi component mount
+  useEffect(() => {
+  
 
     fetchCart();
   }, []);
 
   // Thêm sản phẩm vào giỏ hàng
-  const addToCart = async (productId, quantity = 1) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Vui lòng đăng nhập để thêm sản phẩm');
-
-      const res = await axios.post(
-        '/api/cart/add',
-        { productId: productId.toString(), quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // Cập nhật cart và items
-      setCart(res.data.cart || null);
-      setCartItems(res.data.items || []);
-      return res.data;
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      throw error;
-    }
-  };
+  const addToCart = async (productId) => {
+     const token = Cookies.get('token');
+     try {
+       const response = await fetch('http://localhost:8080/flower_shop/api/cart/add', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+           Authorization: `Bearer ${token}`,
+         },
+         body: JSON.stringify({ productId, quantity: 1 }),
+       });
+ 
+       if (!response.ok) {
+         throw new Error('Failed to add product to cart');
+       }
+ 
+      //  alert('Sản phẩm đã được thêm vào giỏ hàng!');
+       fetchCart();
+     } catch (err) {
+       alert('Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau.');
+     }
+   };
 
   // Xóa sản phẩm khỏi giỏ hàng
   const removeFromCart = async (productId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = Cookies.get('token');
       if (!token) throw new Error('Vui lòng đăng nhập để xóa sản phẩm');
 
       const res = await axios.delete(`/api/cart/remove/${productId}`, {
@@ -75,7 +79,7 @@ export const CartProvider = ({ children }) => {
   // Cập nhật số lượng sản phẩm
   const updateItemQuantity = async (productId, quantity) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = Cookies.get('token');
       if (!token) throw new Error('Vui lòng đăng nhập để cập nhật giỏ hàng');
       if (quantity < 1) throw new Error('Số lượng phải lớn hơn 0');
 
@@ -96,7 +100,7 @@ export const CartProvider = ({ children }) => {
   // Xóa toàn bộ giỏ hàng
   const clearCart = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = Cookies.get('token');
       if (!token) throw new Error('Vui lòng đăng nhập để xóa giỏ hàng');
 
       const res = await axios.delete('/api/cart/clear', {

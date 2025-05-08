@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
-
+import Cookies from 'js-cookie';
 // Khởi tạo context
 const AdminContext = createContext();
 
 // Provider component
 export const AdminProvider = ({ children }) => {
-  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken') || null);
+  const [adminToken, setAdminToken] = useState(Cookies.get('adminToken') || null);
 
   // Hàm kiểm tra token admin
   const verifyTokenAdmin = async () => {
@@ -25,13 +25,13 @@ export const AdminProvider = ({ children }) => {
         return true;
       } else {
         setAdminToken(null);
-        localStorage.removeItem('adminToken');
+        Cookies.remove('adminToken');
         return false;
       }
     } catch (error) {
       console.error('Error verifying admin token:', error);
       setAdminToken(null);
-      localStorage.removeItem('adminToken');
+      Cookies.remove('adminToken');
       return false;
     }
   };
@@ -53,7 +53,7 @@ export const AdminProvider = ({ children }) => {
 
       if (response.success) {
         setAdminToken(response.token);
-        localStorage.setItem('adminToken', response.token);
+        Cookies.set('adminToken', response.token);
         return true;
       } else {
         return false;
@@ -67,7 +67,7 @@ export const AdminProvider = ({ children }) => {
   // Hàm đăng xuất admin
   const logoutAdmin = () => {
     setAdminToken(null);
-    localStorage.removeItem('adminToken');
+    Cookies.remove('adminToken');
   };
 
   const value = {

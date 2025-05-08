@@ -1,83 +1,46 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../ui/ProductCard';
-export const products = [
-  { 
-    id: 1, 
-    name: "Bó hoa hồng đỏ", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 450000, 
-    originalPrice: 500000, 
-    discount: 10,
-    slug: "bo-hoa-hong-do"
-  },
-  { 
-    id: 2, 
-    name: "Hoa lily trắng", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 350000, 
-    originalPrice: 350000, 
-    discount: 0,
-    slug: "hoa-lily-trang"
-  },
-  { 
-    id: 3, 
-    name: "Giỏ hoa tulip", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 550000, 
-    originalPrice: 650000, 
-    discount: 15,
-    slug: "gio-hoa-tulip"
-  },
-  { 
-    id: 4, 
-    name: "Hoa lan hồ điệp", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 750000, 
-    originalPrice: 850000, 
-    discount: 12,
-    slug: "hoa-lan-ho-diep"
-  },
-  { 
-    id: 5, 
-    name: "Bó hoa cúc trắng", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 250000, 
-    originalPrice: 250000, 
-    discount: 0,
-    slug: "bo-hoa-cuc-trang"
-  },
-  { 
-    id: 6, 
-    name: "Hoa hướng dương", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 400000, 
-    originalPrice: 450000, 
-    discount: 11,
-    slug: "hoa-huong-duong"
-  },
-  { 
-    id: 7, 
-    name: "Lẵng hoa mix", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 600000, 
-    originalPrice: 700000, 
-    discount: 14,
-    slug: "lang-hoa-mix"
-  },
-  { 
-    id: 8, 
-    name: "Hoa cẩm tú cầu", 
-    imageUrl: "/api/placeholder/300/300", 
-    price: 480000, 
-    originalPrice: 520000, 
-    discount: 8,
-    slug: "hoa-cam-tu-cau"
-  }
-];
+import { useState } from 'react';
+
+
 function FeaturedProducts() {
+
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+
+
   
-  
+  useEffect(() => {
+    // Fetch products from backend
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:8080/flower_shop/products/');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+
+        const data = await response.json();
+        setProducts(data);
+
+        // Extract unique categories
+        const uniqueCategories = [...new Set(data.map((product) => product.category))];
+
+        setCategories(uniqueCategories);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch products. Please try again later.');
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   return (
     <section className="py-10 bg-gray-50">
       <div className="container mx-auto px-4">

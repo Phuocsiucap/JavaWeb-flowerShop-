@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import OrderHistory from '../components/ui/OrderHistory';  // Import component OrderHistory
 
 const ProfilePage = () => {
-  const { currentUser, updateUserProfile, logout } = useContext(AuthContext);
+  const {setInfo, currentUser, updateUserProfile, logout } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     id: '',
     email: '',
@@ -17,6 +17,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('info');
 
   useEffect(() => {
+    setInfo();
     if (currentUser) {
       setFormData({
         id: currentUser.id || '',
