@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect} from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 import axios from '../axiosInstance'; // đường dẫn phù hợp project của bạn
 
@@ -7,37 +7,34 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
 
-  const setInfo = async() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await axios.get('/api/auth/me', {
-          headers:  {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setCurrentUser(res.data);
-      } catch (error) {
-        setCurrentUser(null);
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Gửi token từ localStorage
+          const res = await axios.get('/auth/me', {
+            headers: { 
+              Authorization: `Bearer ${token}` 
+            }
+          });
+          setCurrentUser(res.data);
+        } catch (error) {
+          setCurrentUser(null);
+        }
       }
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
-  };
-
-    // ✅ Fetch thông tin người dùng khi AuthProvider khởi tạo
-    useEffect(() => {
-      setInfo();
-    }, []); // Chỉ chạy một lần khi component mount
+    fetchCurrentUser();
+  }, []);
 
   const login = async (email, password) => {
     var res = await axios.post('/api/auth/login', { email, password });
     res = res.data; // Lấy dữ liệu từ response
     console.log(res); // Kiểm tra dữ liệu trả về từ server
     localStorage.setItem('token', res.data.token); // Lưu token
-    setInfo(); // Lấy thông tin người dùng
     // setCurrentUser(res.data.user); // Lưu thông tin người dùng
     return res.data;
   };
@@ -62,18 +59,11 @@ export const AuthProvider = ({ children }) => {
   const updateUserProfile = async (userData) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.put('/api/auth/update-profile', {
-        "email": userData.email,
-        "name": userData.name,
-        "address": userData.address,
-        "phone": userData.phone
-      }, {
+      const res = await axios.put('/api/auth/update-profile', userData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCurrentUser(res.data.data.user);
-      console.log(res.data); // Kiểm tra dữ liệu trả về từ server
-      alert(res.data.message); // Hiển thị thông báo từ server
-      return res.data.data.user; // Trả về dữ liệu người dùng đã cập nhật
+      setCurrentUser(res.data);
+      return res.data;
     } catch (error) {
       console.error("Error updating user profile:", error);
       throw error;
