@@ -1,3 +1,4 @@
+
 package com.controller;
 
 
@@ -36,18 +37,14 @@ public class AuthServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
         if ("/me".equals(pathInfo)) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                Optional<User> userOptional = authService.getUserFromToken(token);
-                if (userOptional.isPresent()) {
-                    sendJsonResponse(resp, userOptional.get());
-                } else {
-                    sendErrorResponse(resp, "Invalid or expired token");
-                }
+            String userId = (String) req.getAttribute("userId");
+            Optional<User> userOptional = authService.getUserById(userId);
+            if (userOptional.isPresent()) {
+               sendJsonResponse(resp, userOptional.get());
             } else {
-                sendErrorResponse(resp, "Missing Authorization header");
+                    sendErrorResponse(resp, "Invalid or expired token");
             }
+            
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("Endpoint not found");
@@ -84,22 +81,18 @@ public class AuthServlet extends HttpServlet {
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
         if ("/update-profile".equals(pathInfo)) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                try {
-                    UpdateRequest request = objectMapper.readValue(req.getInputStream(), UpdateRequest.class);
-                    AuthResponse response = authService.update(request, token);
+        	try {
+        		String userId = (String) req.getAttribute("userId");
+        		User user = authService.getUserById(userId).get();
+                UpdateRequest request = objectMapper.readValue(req.getInputStream(), UpdateRequest.class);
+                AuthResponse response = authService.update(request, user);
 
-                    resp.setContentType("application/json");
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    resp.getWriter().write(objectMapper.writeValueAsString(response));
-                } catch (Exception e) {
-                    sendErrorResponse(resp, "Invalid request body: " + e.getMessage());
-                }
-            } else {
-                sendErrorResponse(resp, "Missing or invalid Authorization header");
-            }
+                resp.setContentType("application/json");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().write(objectMapper.writeValueAsString(response));
+            } catch (Exception e) {
+                sendErrorResponse(resp, "Invalid request body: " + e.getMessage());
+            } 
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("Endpoint not found");

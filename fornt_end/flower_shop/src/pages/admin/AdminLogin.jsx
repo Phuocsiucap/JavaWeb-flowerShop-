@@ -1,6 +1,7 @@
 import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AdminContext } from "../../contexts/AdminContext";  // Import AdminContext
+
+import  AdminContext  from "../../contexts/AdminContext";  // Import AdminContext
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -10,14 +11,18 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   // Lấy login từ AdminContext
-  const { login } = useContext(AdminContext);
+
+  const { loginAdmin } = useContext(AdminContext);
+
 
   const loginWithEmail = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      const userData = await login(email, password);  // Gọi login từ AdminContext
+
+      const userData = await loginAdmin(email, password);  // Gọi login từ AdminContext
+
 
       if (userData) {
         navigate("/admin/home");  // Nếu đăng nhập thành công, điều hướng về trang chủ

@@ -1,0 +1,96 @@
+import React, { useState } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
+
+const DeleteConfirmModal = ({ isOpen, onClose, onDelete, userName }) => {
+  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const handleConfirmDelete = async () => {
+    const result = await onDelete();
+    if (result?.success) {
+      setSuccessMessage(result.message);
+      // Modal will auto close after 3s on success
+      setTimeout(() => {
+        setSuccessMessage('');
+        onClose();
+      }, 3000);
+    } else if (result?.message) {
+      setError(result.message);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Alert Notifications */}
+      {(successMessage || error) && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in-down">
+          {successMessage && (
+            <div className="flex items-center p-4 mb-4 bg-green-100 border border-green-200 text-green-700 rounded-lg shadow-lg">
+              <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span className="font-medium">{successMessage}</span>
+              <button onClick={() => setSuccessMessage('')} className="ml-4 text-green-600 hover:text-green-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center p-4 bg-red-100 border border-red-200 text-red-700 rounded-lg shadow-lg">
+              <svg className="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              <span className="font-medium">{error}</span>
+              <button onClick={() => setError('')} className="ml-4 text-red-600 hover:text-red-800">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="flex justify-between items-center border-b px-6 py-4">
+            <h3 className="text-xl font-semibold text-gray-900">Xác nhận xóa</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <div className="p-6">
+            <div className="flex items-center mb-4 text-red-500">
+              <AlertTriangle className="h-6 w-6 mr-2" />
+              <span className="font-medium">Cảnh báo</span>
+            </div>
+            
+            <p className="text-gray-700 mb-4">
+              Bạn có chắc chắn muốn xóa người dùng <span className="font-semibold">{userName}</span>? 
+              Hành động này không thể hoàn tác.
+            </p>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default DeleteConfirmModal;
