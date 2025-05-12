@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface AuthService {
     AuthResponse register(RegisterRequest request);
     AuthResponse login(LoginRequest request);
+    AuthResponse update(UpdateRequest request, User user);
     Optional<User> getUserFromToken(String token);
-    AuthResponse update(UpdateRequest request, String token);
+    Optional<User> getUserById(String id);
+	void logout(String userId);
 }

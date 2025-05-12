@@ -1,73 +1,137 @@
 import React, { createContext, useContext, useState } from 'react';
+import axios from '../axiosInstance';
 import Cookies from 'js-cookie';
-// Khởi tạo context
+
 const AdminContext = createContext();
 
-// Provider component
 export const AdminProvider = ({ children }) => {
   const [adminToken, setAdminToken] = useState(Cookies.get('adminToken') || null);
 
-  // Hàm kiểm tra token admin
   const verifyTokenAdmin = async () => {
     if (!adminToken) return false;
-
-    try {
-      // Giả lập gọi API để kiểm tra token
-      // Thay thế đoạn này bằng API thật nếu có
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          // Giả lập: token hợp lệ nếu nó tồn tại
-          resolve({ success: adminToken !== null });
-        }, 1000);
-      });
-
-      if (response.success) {
-        return true;
-      } else {
-        setAdminToken(null);
-        Cookies.remove('adminToken');
-        return false;
-      }
-    } catch (error) {
-      console.error('Error verifying admin token:', error);
-      setAdminToken(null);
-      Cookies.remove('adminToken');
-      return false;
-    }
+    return true;
   };
 
-  // Hàm đăng nhập admin (giả lập)
-  const loginAdmin = async (username, password) => {
-    try {
-      // Giả lập gọi API đăng nhập
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          // Giả lập: đăng nhập thành công nếu username là 'admin' và password là 'password'
-          if (username === 'admin' && password === 'password') {
-            resolve({ success: true, token: 'fake-admin-token' });
-          } else {
-            resolve({ success: false });
-          }
-        }, 1000);
-      });
-
-      if (response.success) {
-        setAdminToken(response.token);
-        Cookies.set('adminToken', response.token);
+  const loginAdmin = async (email, password) => {
+    if (email && password) {
+      try {
+        const res = await axios.post('/api/auth/login', { email, password });
+        const data = res.data;
+        console.log(data);
+        const token = data.data.token;
+        setAdminToken(token);
+        Cookies.set('adminToken', token);
         return true;
-      } else {
+      } catch (error) {
+        console.error("Login error:", error);
         return false;
       }
-    } catch (error) {
-      console.error('Error logging in admin:', error);
-      return false;
     }
+    return false;
   };
 
-  // Hàm đăng xuất admin
   const logoutAdmin = () => {
     setAdminToken(null);
     Cookies.remove('adminToken');
+  };
+
+  // API methods
+  const getAllUsers = async (filters = {}) => {
+    try {
+      const res = await axios.get('api/admin/management/users/', {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        params: filters
+      });
+      return res.data.data.users;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return [];
+    }
+  };
+
+  const getUserById = async (userId) => {
+    try {
+      const res = await axios.get(`api/admin/management/users/${userId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      return res.data.data.user;
+    } catch (error) {
+      console.error(`Error fetching user ${userId}:`, error);
+      return null;
+    }
+  };
+  const createUser = async (userData) => {
+    try {
+      const res = await axios.post('api/admin/management/users', {
+        name: userData.fullName,
+        email: userData.email,
+        phone: userData.phone,
+        password: userData.password,
+        role: userData.role
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      
+      if (res.data.success) {
+        return {
+          success: true,
+          message: res.data.message,
+          user: res.data.data.user
+        };
+      } else {
+        return {
+          success: false,
+          message: res.data.message || 'Có lỗi xảy ra'
+        };
+      }
+    } catch (error) {
+      console.error("Error creating user:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Có lỗi xảy ra khi tạo người dùng'
+      };
+    }
+  };
+
+  const updateUser = async (userId, updatedData) => {
+    try {
+      // Only include password in the payload if it's provided
+      const payload = {
+        name: updatedData.fullName,
+        email: updatedData.email,
+        phone: updatedData.phone,
+        role: updatedData.role,
+        address: updatedData.address,
+        status: updatedData.status
+      };
+      
+      // Add password only if it exists
+      if (updatedData.password) {
+        payload.password = updatedData.password;
+      }
+      console.log(payload);
+      const res = await axios.put(`api/admin/management/users/${userId}`, payload, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      
+      return res.data;
+    } catch (error) {
+      console.error(`Error updating user ${userId}:`, error);
+      throw error;
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      const res = await axios.delete(`api/admin/management/users/${userId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      console.log(res.data);
+      return res.data;
+    } catch (error) {
+      console.error(`Error deleting user ${userId}:`, error);
+      throw error;
+    }
   };
 
   const value = {
@@ -75,16 +139,16 @@ export const AdminProvider = ({ children }) => {
     verifyTokenAdmin,
     loginAdmin,
     logoutAdmin,
+    getAllUsers,
+    getUserById,
+    createUser,
+    updateUser,
+    deleteUser
   };
 
-  return (
-    <AdminContext.Provider value={value}>
-      {children}
-    </AdminContext.Provider>
-  );
+  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 };
 
-// Hook để sử dụng AdminContext
 export const useAdmin = () => useContext(AdminContext);
 
 export default AdminContext;

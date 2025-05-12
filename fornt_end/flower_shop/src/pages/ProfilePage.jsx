@@ -31,7 +31,7 @@ const ProfilePage = () => {
       // Fetch user orders
       fetchUserOrders();
     }
-  }, [currentUser]);
+  }, [  ]);
 
   const fetchUserOrders = async () => {
     // This would be replaced with an actual API call

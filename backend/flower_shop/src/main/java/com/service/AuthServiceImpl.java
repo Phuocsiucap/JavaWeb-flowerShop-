@@ -5,10 +5,12 @@ import com.dto.request.LoginRequest;
 import com.dto.request.RegisterRequest;
 import com.dto.request.UpdateRequest;
 import com.dto.response.AuthResponse;
+import com.mapper.UserMapper;
 import com.model.User;
 import com.util.JwtUtil;
 import com.util.PasswordUtil;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,7 +25,23 @@ public class AuthServiceImpl implements AuthService {
         this.userDao = userDao;
     }
 
-
+    public Optional<User> getUserById(String id) {
+    	try {
+            return userDao.findById(id);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+    
+    @Override
+    public Optional<User> getUserFromToken(String token) {
+        try {
+            String email = JwtUtil.verifyToken(token).getClaim("email").asString();
+            return userDao.findByEmail(email);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
     @Override
     public AuthResponse register(RegisterRequest request) {
         Optional<User> existingUser = userDao.findByEmail(request.getEmail());
@@ -58,46 +76,50 @@ public class AuthServiceImpl implements AuthService {
         if (!PasswordUtil.checkPassword(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
+        if("blocked".equals(user.getStatus())) {
+     
+        	return AuthResponse.builder()
+                    .message("login unsuccessful, your accout was blocked. Please contact with 0397826216 or nguyenvanphuoc@gmail.com")
+                    .data(null) // dùng Map để bao token vào object
+                    .build();
+        }
         String token = generateToken(user);
+        user.setStatus("active");
+    	user.setLastLogin(LocalDateTime.now());
+    	userDao.update(user);
         return AuthResponse.builder()
                 .message("Login successful")
                 .data(Map.of("token", token)) // dùng Map để bao token vào object
                 .build();
     }
 
-    @Override
-    public Optional<User> getUserFromToken(String token) {
-        try {
-            String email = JwtUtil.verifyToken(token).getClaim("email").asString();
-            return userDao.findByEmail(email);
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
+  
 
     @Override
-    public AuthResponse update(UpdateRequest request, String token) {
-        Optional<User> optionalUser = getUserFromToken(token);
-        if (optionalUser.isEmpty()) {
-            return AuthResponse.builder()
-                    .message("Invalid token or user not found")
-                    .data(Map.of())
-                    .build();
-        }
-
-        User user = optionalUser.get();
-
+    public AuthResponse update(UpdateRequest request, User user) {
+   
         if (request.getAddress() != null) user.setAddress(request.getAddress());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
         if (request.getName() != null) user.setName(request.getName());
 
         userDao.update(user);
-        System.out.println("User updated successfully");
+       
 
         return AuthResponse.builder()
                 .message("User updated successfully")
-                .data(Map.of("user", user))
+                .data(Map.of("user", UserMapper.toMap(user)))
                 .build();
+    }
+    
+    @Override
+	public void logout(String userId) {
+    	Optional<User> optionalUser = userDao.findById(userId); 
+    	if(optionalUser.isPresent()) {
+    		User user = optionalUser.get();
+    		user.setStatus("inactive");
+    		userDao.update(user);
+    	}
+    	
     }
 
 }

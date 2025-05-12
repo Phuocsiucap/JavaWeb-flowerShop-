@@ -1,3 +1,4 @@
+
 package com.controller;
 
 
@@ -7,6 +8,7 @@ import com.dto.request.RegisterRequest;
 import com.dto.request.UpdateRequest;
 import com.dto.response.AuthResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mapper.UserMapper;
 import com.model.User;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
@@ -36,18 +38,16 @@ public class AuthServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
         if ("/me".equals(pathInfo)) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                Optional<User> userOptional = authService.getUserFromToken(token);
-                if (userOptional.isPresent()) {
-                    sendJsonResponse(resp, userOptional.get());
-                } else {
-                    sendErrorResponse(resp, "Invalid or expired token");
-                }
+            String userId = (String) req.getAttribute("userId");
+            System.out.println(userId);
+            Optional<User> userOptional = authService.getUserById(userId);
+            
+            if (userOptional.isPresent()) {
+               sendJsonResponse(resp, UserMapper.toMap(userOptional.get()));
             } else {
-                sendErrorResponse(resp, "Missing Authorization header");
+                    sendErrorResponse(resp, "Invalid or expired token");
             }
+            
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("Endpoint not found");
@@ -71,7 +71,8 @@ public class AuthServlet extends HttpServlet {
             resp.setContentType("application/json");
             resp.getWriter().write(objectMapper.writeValueAsString(response));
         } else if ("/logout".equals(pathInfo)) {
-            
+            String userId = (String ) req.getAttribute("userId");
+            authService.logout(userId);
             AuthResponse response = AuthResponse.builder().message("Logged out").build();
             sendJsonResponse(resp, response);
         } else {
@@ -84,22 +85,18 @@ public class AuthServlet extends HttpServlet {
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
         if ("/update-profile".equals(pathInfo)) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                try {
-                    UpdateRequest request = objectMapper.readValue(req.getInputStream(), UpdateRequest.class);
-                    AuthResponse response = authService.update(request, token);
+        	try {
+        		String userId = (String) req.getAttribute("userId");
+        		User user = authService.getUserById(userId).get();
+                UpdateRequest request = objectMapper.readValue(req.getInputStream(), UpdateRequest.class);
+                AuthResponse response = authService.update(request, user);
 
-                    resp.setContentType("application/json");
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    resp.getWriter().write(objectMapper.writeValueAsString(response));
-                } catch (Exception e) {
-                    sendErrorResponse(resp, "Invalid request body: " + e.getMessage());
-                }
-            } else {
-                sendErrorResponse(resp, "Missing or invalid Authorization header");
-            }
+                resp.setContentType("application/json");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().write(objectMapper.writeValueAsString(response));
+            } catch (Exception e) {
+                sendErrorResponse(resp, "Invalid request body: " + e.getMessage());
+            } 
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("Endpoint not found");
