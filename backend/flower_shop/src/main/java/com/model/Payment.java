@@ -1,38 +1,73 @@
 package com.model;
 
-import java.util.Date;
-
 public class Payment {
-    private int paymentId;
+    private int id;
+    private String method;
+    private String creditCardName;
+    private String creditCardNumber;
+    private String creditCardExpiry;
+    private String creditCardCVV;
     private int orderId;
-    private double amount;
-    private String paymentMethod;
-    private Date paymentDate;
-    private String transactionId;
-    private String status; // Success, Failed, Pending
 
-    public Payment() {
-        this.paymentDate = new Date();
-        this.status = "Pending";
-    }
+    public Payment() {}
 
-    public Payment(int paymentId, int orderId, double amount, String paymentMethod, String transactionId) {
-        this.paymentId = paymentId;
+    public Payment(String method, String creditCardName, String creditCardNumber, String creditCardExpiry, String creditCardCVV, int orderId) {
+        this.method = method;
+        this.creditCardName = creditCardName;
+        this.creditCardNumber = creditCardNumber;
+        this.creditCardExpiry = creditCardExpiry;
+        this.creditCardCVV = creditCardCVV;
         this.orderId = orderId;
-        this.amount = amount;
-        this.paymentMethod = paymentMethod;
-        this.paymentDate = new Date();
-        this.transactionId = transactionId;
-        this.status = "Pending";
     }
 
-    // Getters and Setters
-    public int getPaymentId() {
-        return paymentId;
+    // Getters và Setters
+
+    public int getId() {
+        return id;
     }
 
-    public void setPaymentId(int paymentId) {
-        this.paymentId = paymentId;
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public String getCreditCardName() {
+        return creditCardName;
+    }
+
+    public void setCreditCardName(String creditCardName) {
+        this.creditCardName = creditCardName;
+    }
+
+    public String getCreditCardNumber() {
+        return creditCardNumber;
+    }
+
+    public void setCreditCardNumber(String creditCardNumber) {
+        this.creditCardNumber = creditCardNumber;
+    }
+
+    public String getCreditCardExpiry() {
+        return creditCardExpiry;
+    }
+
+    public void setCreditCardExpiry(String creditCardExpiry) {
+        this.creditCardExpiry = creditCardExpiry;
+    }
+
+    public String getCreditCardCVV() {
+        return creditCardCVV;
+    }
+
+    public void setCreditCardCVV(String creditCardCVV) {
+        this.creditCardCVV = creditCardCVV;
     }
 
     public int getOrderId() {
@@ -41,45 +76,5 @@ public class Payment {
 
     public void setOrderId(int orderId) {
         this.orderId = orderId;
-    }
-
-    public double getAmount() {
-        return amount;
-    }
-
-    public void setAmount(double amount) {
-        this.amount = amount;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public Date getPaymentDate() {
-        return paymentDate;
-    }
-
-    public void setPaymentDate(Date paymentDate) {
-        this.paymentDate = paymentDate;
-    }
-
-    public String getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 }
