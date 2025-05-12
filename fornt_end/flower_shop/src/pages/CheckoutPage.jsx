@@ -12,6 +12,7 @@ export default function CheckoutPage() {
     cardHolder: '',
     expiryDate: '',
     cvv: '',
+    paymentMethod: 'Credit Card', // Default payment method
   });
   const [shippingInfo, setShippingInfo] = useState({
     fullName: '',
@@ -23,6 +24,7 @@ export default function CheckoutPage() {
   });
   const [step, setStep] = useState(1);
   const [orderStatus, setOrderStatus] = useState('pending');
+  const [orderId, setOrderId] = useState(null);
 
   const handleShippingChange = (e) => {
     const { name, value } = e.target;
@@ -40,7 +42,34 @@ export default function CheckoutPage() {
     }));
   };
 
+  const validateStep1 = () => {
+    if (!shippingInfo.fullName || !shippingInfo.phone) {
+      alert('Vui lòng điền đầy đủ Họ tên và Số điện thoại.');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!shippingInfo.address || !shippingInfo.city || !shippingInfo.district || !shippingInfo.ward) {
+      alert('Vui lòng điền đầy đủ thông tin giao hàng (Địa chỉ, Tỉnh/TP, Quận/Huyện, Phường/Xã).');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = () => {
+    if (paymentInfo.paymentMethod === 'Credit Card' &&
+        (!paymentInfo.cardNumber || !paymentInfo.cardHolder || !paymentInfo.expiryDate || !paymentInfo.cvv)) {
+      alert('Vui lòng điền đầy đủ thông tin thẻ tín dụng.');
+      return false;
+    }
+    return true;
+  };
+
   const handleNextStep = () => {
+    if (step === 1 && !validateStep1()) return;
+    if (step === 2 && !validateStep2()) return;
     setStep((prevStep) => prevStep + 1);
   };
 
@@ -49,14 +78,45 @@ export default function CheckoutPage() {
   };
 
   const handleSubmitOrder = async () => {
+    if (!validateStep3()) return;
+
     try {
       setOrderStatus('processing');
-      // Logic giả lập đặt hàng (có thể tích hợp API sau)
+
+      const checkoutRequest = {
+        shippingAddress: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.city}`,
+        phoneNumber: shippingInfo.phone,
+        paymentMethod: paymentInfo.paymentMethod,
+        items: cartItems.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      };
+
+      const response = await fetch('http://localhost:8080/flower_shop/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token'), // Assuming token is stored in localStorage
+        },
+        body: JSON.stringify(checkoutRequest),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Đặt hàng thất bại');
+      }
+
+      const result = await response.json();
+      setOrderId(result.orderId);
       setOrderStatus('success');
       setStep(4);
     } catch (error) {
       console.error('Error processing order:', error);
       setOrderStatus('failed');
+      alert('Lỗi: ' + error.message);
     }
   };
 
@@ -123,7 +183,7 @@ export default function CheckoutPage() {
               <span className="text-xs mt-1">Thanh toán</span>
             </div>
             <div className="w-1/4 h-0.5 mt-4 bg-gray-200 relative">
-              <div className={`absolute left-0 top-0 h-full bg-green-500 transition-all duration-300 ${step >= 4 ? 'w-full' : 'w-0'}`}></div>
+              <div className={`absolute left-0 top-0 h-full bg-green-600 transition-all duration-300 ${step >= 4 ? 'w-full' : 'w-0'}`}></div>
             </div>
             <div className={`flex flex-col items-center ${step >= 4 ? 'text-green-600' : 'text-gray-400'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 4 ? 'bg-green-100 border-green-600' : 'bg-gray-100 border-gray-300'} border-2`}>
@@ -276,80 +336,132 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <CreditCard size={20} />
-                <span>Thông tin thanh toán</span>
+                <span>Phương thức thanh toán</span>
               </h2>
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                    Số thẻ
-                  </label>
-                  <div className="relative">
+                <div className="grid grid-cols-3 gap-4">
+                  <label
+                    className={`flex items-center justify-center p-4 border rounded-md cursor-pointer ${
+                      paymentInfo.paymentMethod === 'Cash' ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`}
+                  >
                     <input
-                      type="text"
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={paymentInfo.cardNumber}
+                      type="radio"
+                      name="paymentMethod"
+                      value="Cash"
+                      checked={paymentInfo.paymentMethod === 'Cash'}
                       onChange={handlePaymentChange}
-                      placeholder="1234 5678 9012 3456"
-                      className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
+                      className="hidden"
                     />
-                    <CreditCard className="absolute right-3 top-2.5 text-gray-400" size={16} />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="cardHolder" className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên chủ thẻ
+                    <span className="text-sm font-medium">Tiền mặt</span>
                   </label>
-                  <input
-                    type="text"
-                    id="cardHolder"
-                    name="cardHolder"
-                    value={paymentInfo.cardHolder}
-                    onChange={handlePaymentChange}
-                    placeholder="NGUYEN VAN A"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
+                  <label
+                    className={`flex items-center justify-center p-4 border rounded-md cursor-pointer ${
+                      paymentInfo.paymentMethod === 'Credit Card' ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Credit Card"
+                      checked={paymentInfo.paymentMethod === 'Credit Card'}
+                      onChange={handlePaymentChange}
+                      className="hidden"
+                    />
+                    <span className="text-sm font-medium">Thẻ tín dụng</span>
+                  </label>
+                  <label
+                    className={`flex items-center justify-center p-4 border rounded-md cursor-pointer ${
+                      paymentInfo.paymentMethod === 'Banking' ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Banking"
+                      checked={paymentInfo.paymentMethod === 'Banking'}
+                      onChange={handlePaymentChange}
+                      className="hidden"
+                    />
+                    <span className="text-sm font-medium">Chuyển khoản</span>
+                  </label>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Ngày hết hạn
-                    </label>
-                    <div className="relative">
+
+                {paymentInfo.paymentMethod === 'Credit Card' && (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        Số thẻ
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          id="cardNumber"
+                          name="cardNumber"
+                          value={paymentInfo.cardNumber}
+                          onChange={handlePaymentChange}
+                          placeholder="1234 5678 9012 3456"
+                          className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                          required
+                        />
+                        <CreditCard className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="cardHolder" className="block text-sm font-medium text-gray-700 mb-1">
+                        Tên chủ thẻ
+                      </label>
                       <input
                         type="text"
-                        id="expiryDate"
-                        name="expiryDate"
-                        value={paymentInfo.expiryDate}
+                        id="cardHolder"
+                        name="cardHolder"
+                        value={paymentInfo.cardHolder}
                         onChange={handlePaymentChange}
-                        placeholder="MM/YY"
-                        className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="NGUYEN VAN A"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         required
                       />
-                      <Calendar className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
+                          Ngày hết hạn
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            id="expiryDate"
+                            name="expiryDate"
+                            value={paymentInfo.expiryDate}
+                            onChange={handlePaymentChange}
+                            placeholder="MM/YY"
+                            className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            required
+                          />
+                          <Calendar className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-1">
+                          CVV
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            id="cvv"
+                            name="cvv"
+                            value={paymentInfo.cvv}
+                            onChange={handlePaymentChange}
+                            placeholder="123"
+                            className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            required
+                          />
+                          <Lock className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-1">
-                      CVV
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        id="cvv"
-                        name="cvv"
-                        value={paymentInfo.cvv}
-                        onChange={handlePaymentChange}
-                        placeholder="123"
-                        className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        required
-                      />
-                      <Lock className="absolute right-3 top-2.5 text-gray-400" size={16} />
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
               <div className="mt-6 flex justify-between">
                 <button
@@ -380,7 +492,7 @@ export default function CheckoutPage() {
               </p>
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <p className="font-medium">
-                  Mã đơn hàng: <span className="text-green-600">#FL78923</span>
+                  Mã đơn hàng: <span className="text-green-600">#{orderId}</span>
                 </p>
                 <p className="text-sm text-gray-500">
                   Bạn sẽ nhận được email xác nhận trong ít phút.

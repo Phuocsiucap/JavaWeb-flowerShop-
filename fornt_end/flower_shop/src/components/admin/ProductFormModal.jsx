@@ -267,22 +267,48 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
             {/* Image URL Input */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Đường dẫn hình ảnh
+                Hình ảnh sản phẩm
               </label>
               <div className="flex flex-col md:flex-row md:space-x-4">
                 <div className="flex-1">
-                  <div className="flex items-center border rounded-md overflow-hidden">
-                    <span className="bg-gray-100 px-3 py-2 text-gray-500 border-r">
-                      <Link size={18} />
-                    </span>
+                  <div className="flex flex-col space-y-2">
                     <input
-                      type="text"
-                      name="imageUrl"
-                      value={formData.imageUrl}
-                      onChange={handleChange}
-                      className="flex-1 p-2 outline-none"
-                      placeholder="Nhập đường dẫn URL hình ảnh"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setImagePreview(reader.result);
+                            setFormData({ ...formData, imageUrl: reader.result });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
                     />
+                    <div className="text-sm text-gray-500">
+                      hoặc
+                    </div>
+                    <div className="flex items-center border rounded-md overflow-hidden">
+                      <span className="bg-gray-100 px-3 py-2 text-gray-500 border-r">
+                        <Link size={18} />
+                      </span>
+                      <input
+                        type="text"
+                        name="imageUrl"
+                        value={formData.imageUrl}
+                        onChange={handleChange}
+                        className="flex-1 p-2 outline-none"
+                        placeholder="Nhập đường dẫn URL hình ảnh"
+                      />
+                    </div>
                   </div>
                   {errors.imageUrl && <p className="text-red-500 text-xs mt-1">{errors.imageUrl}</p>}
                 </div>
@@ -296,7 +322,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
                       className="h-full w-full object-cover"
                       onError={(e) => {
                         e.target.src = "/api/placeholder/96/96";
-                        setErrors({...errors, imageUrl: 'Không thể tải hình ảnh. Kiểm tra lại URL.'});
+                        setErrors({...errors, imageUrl: 'Không thể tải hình ảnh. Kiểm tra lại.'});
                       }}
                     />
                     <button

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import Header from '../components/layout/Header';
@@ -8,10 +8,34 @@ import ScrollToTop from '../components/layout/ScrollToTop';
 const Cart = () => {
   const { cartItems, totalItems, totalPrice, removeFromCart, updateItemQuantity, clearCart } = useCart();
   const navigate = useNavigate();
+  const [selectedItems, setSelectedItems] = useState([]);
 
-  // Hàm xử lý chuyển hướng đến trang thanh toán
+  // Hàm xử lý chọn/bỏ chọn item
+  const handleSelectItem = (productId) => {
+    setSelectedItems(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+
+  // Hàm tính tổng tiền các item được chọn
+  const calculateSelectedTotal = () => {
+    return cartItems
+      .filter(item => selectedItems.includes(item.productId))
+      .reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  // Hàm xử lý chuyển hướng đến trang thanh toán với các item đã chọn
   const handleCheckout = () => {
-    navigate('/checkout');
+    if (selectedItems.length === 0) {
+      alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
+      return;
+    }
+    const checkoutItems = cartItems.filter(item => selectedItems.includes(item.productId));
+    navigate('/checkout', { state: { items: checkoutItems } });
   };
 
   if (cartItems.length === 0) {
@@ -44,10 +68,18 @@ const Cart = () => {
           <div className="flow-root">
             <ul className="-my-6 divide-y divide-gray-200">
               {cartItems.map((item) => (
-                <li key={item.id} className="py-6 flex">
+                <li key={item.productId} className="py-6 flex items-center">
+                  <div className="flex items-center h-24 mr-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.productId)}
+                      onChange={() => handleSelectItem(item.productId)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                  </div>
                   <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
                     <img
-                      src={item.image}
+                      src={item.imageUrl}
                       alt={item.name}
                       className="w-full h-full object-center object-cover"
                     />
@@ -63,14 +95,14 @@ const Cart = () => {
                     <div className="flex-1 flex items-end justify-between text-sm">
                       <div className="flex items-center">
                         <button
-                          onClick={() => updateItemQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          onClick={() => updateItemQuantity(item.productId, Math.max(1, item.quantity - 1))}
                           className="px-2 py-1 bg-gray-200 text-gray-700 rounded-l"
                         >
                           -
                         </button>
                         <span className="px-4 py-1 bg-gray-100">{item.quantity}</span>
                         <button
-                          onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateItemQuantity(item.productId, item.quantity + 1)}
                           className="px-2 py-1 bg-gray-200 text-gray-700 rounded-r"
                         >
                           +
@@ -80,7 +112,7 @@ const Cart = () => {
                       <div className="flex">
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeFromCart(item.productId)}
                           className="font-medium text-red-600 hover:text-red-500"
                         >
                           Xóa
@@ -95,15 +127,16 @@ const Cart = () => {
 
           <div className="mt-6 border-t border-gray-200 pt-6">
             <div className="flex justify-between text-base font-medium text-gray-900">
-              <p>Tổng cộng ({totalItems} sản phẩm)</p>
-              <p>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPrice)}</p>
+              <p>Đã chọn ({selectedItems.length} sản phẩm)</p>
+              <p>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateSelectedTotal())}</p>
             </div>
             <p className="mt-0.5 text-sm text-gray-500">Chưa bao gồm phí vận chuyển.</p>
             
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleCheckout}
-                className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md focus:outline-none"
+                className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md focus:outline-none disabled:bg-gray-400"
+                disabled={selectedItems.length === 0}
               >
                 Thanh toán
               </button>

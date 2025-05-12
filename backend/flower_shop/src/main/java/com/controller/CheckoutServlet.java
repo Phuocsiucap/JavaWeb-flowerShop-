@@ -1,13 +1,14 @@
 package com.controller;
 
 import com.dao.OrderDAO;
+import com.dao.ProductDAO;
 import com.dao.UserDao;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.model.Order;
 import com.model.OrderItem;
 import com.model.User;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -19,9 +20,10 @@ import java.util.Optional;
 @WebServlet("/api/checkout")
 public class CheckoutServlet extends HttpServlet {
 
-    private static final AuthService authService = new AuthServiceImpl(new UserDao());
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderDAO orderDAO = new OrderDAO();
+    private final ProductDAO productDAO = new ProductDAO();
+    private final AuthService authService = new AuthServiceImpl(new UserDao());
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -31,63 +33,65 @@ public class CheckoutServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         try {
-            // Xác thực token
+            // Xác thực token từ header
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Thiếu hoặc sai token");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Thiếu token");
                 return;
             }
 
             String token = authHeader.substring(7);
-            Optional<User> userOptional = authService.getUserFromToken(token);
-            if (!userOptional.isPresent()) {
-                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ");
+            Optional<User> userOpt = authService.getUserFromToken(token);
+            if (!userOpt.isPresent()) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ");
                 return;
             }
 
-            User user = userOptional.get();
-            String userId = user.getId();
+            User user = userOpt.get();
+            CheckoutRequest checkout = objectMapper.readValue(request.getReader(), CheckoutRequest.class);
 
-            // Đọc JSON từ frontend
-            CheckoutRequest checkoutRequest = objectMapper.readValue(request.getReader(), CheckoutRequest.class);
-
-            // Kiểm tra dữ liệu
-            if (checkoutRequest.shippingAddress == null || checkoutRequest.shippingAddress.trim().isEmpty()
-                || checkoutRequest.phoneNumber == null || checkoutRequest.phoneNumber.trim().isEmpty()
-                || checkoutRequest.paymentMethod == null || checkoutRequest.paymentMethod.trim().isEmpty()
-                || checkoutRequest.items == null || checkoutRequest.items.isEmpty()) {
-                sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Thiếu thông tin thanh toán hoặc giỏ hàng");
+            if (checkout.items == null || checkout.items.isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Giỏ hàng trống");
                 return;
             }
 
-            // Tính tổng tiền
             double totalAmount = 0;
-            for (OrderItem item : checkoutRequest.items) {
-                totalAmount += item.getSubtotal();
+            for (OrderItem item : checkout.items) {
+                totalAmount += item.getQuantity() * item.getPrice();
             }
 
             // Tạo đơn hàng
             Order order = new Order();
-            order.setUserId(userId);
+            order.setUserId(user.getId());
+            order.setShippingAddress(checkout.shippingAddress);
+            order.setPhoneNumber(checkout.phoneNumber);
+            order.setPaymentMethod(checkout.paymentMethod);
             order.setTotalAmount(totalAmount);
             order.setStatus("Pending");
-            order.setPaymentMethod(checkoutRequest.paymentMethod);
-            order.setShippingAddress(checkoutRequest.shippingAddress);
-            order.setPhoneNumber(checkoutRequest.phoneNumber);
-            order.setItems(checkoutRequest.items);
+            order.setItems(checkout.items);
 
-            int orderId = orderDAO.createOrder(order);
-
-            if (orderId > 0) {
-                sendSuccessResponse(response, orderId);
-            } else {
-                sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Tạo đơn hàng thất bại");
+            // Giao dịch lưu đơn hàng
+            int orderId = orderDAO.createOrderWithItems(order); // Đảm bảo DAO này dùng transaction
+            if (orderId <= 0) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Tạo đơn hàng thất bại");
+                return;
             }
 
-        } catch (IOException e) {
-            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Lỗi JSON: " + e.getMessage());
+            // Trừ tồn kho từng sản phẩm
+            for (OrderItem item : checkout.items) {
+                boolean success = productDAO.decreaseStock(item.getProductId(), item.getQuantity());
+                if (!success) {
+                    orderDAO.deleteOrder(orderId); // rollback nếu thiếu kho
+                    response.sendError(HttpServletResponse.SC_CONFLICT,
+                            "Sản phẩm '" + item.getProductName() + "' không đủ hàng");
+                    return;
+                }
+            }
+
+            objectMapper.writeValue(response.getWriter(), new SuccessResponse("Đặt hàng thành công", orderId));
+
         } catch (Exception e) {
-            sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ: " + e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi: " + e.getMessage());
         }
     }
 
@@ -106,23 +110,5 @@ public class CheckoutServlet extends HttpServlet {
             this.message = message;
             this.orderId = orderId;
         }
-    }
-
-    private void sendSuccessResponse(HttpServletResponse response, int orderId) throws IOException {
-        response.setStatus(HttpServletResponse.SC_OK);
-        objectMapper.writeValue(response.getWriter(), new SuccessResponse("Đặt hàng thành công", orderId));
-    }
-
-    private static class ErrorResponse {
-        public String message;
-
-        public ErrorResponse(String message) {
-            this.message = message;
-        }
-    }
-
-    private void sendErrorResponse(HttpServletResponse response, int statusCode, String message) throws IOException {
-        response.setStatus(statusCode);
-        objectMapper.writeValue(response.getWriter(), new ErrorResponse(message));
     }
 }

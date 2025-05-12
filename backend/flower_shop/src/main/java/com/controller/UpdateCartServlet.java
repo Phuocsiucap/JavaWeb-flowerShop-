@@ -7,6 +7,7 @@ import com.model.Product;
 import com.dao.CartDAO;
 import com.dao.UserDao;
 import com.dao.ProductDAO;
+import com.dao.ProductDAOImpl;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +24,7 @@ public class UpdateCartServlet extends CartController {
     private static final long serialVersionUID = 1L;
     private static final AuthService authService = new AuthServiceImpl(new UserDao());
     private static final CartDAO cartDAO = new CartDAO();
-    private static final ProductDAO productDAO = new ProductDAO();
+    private static final ProductDAO productDAO = new ProductDAOImpl();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
