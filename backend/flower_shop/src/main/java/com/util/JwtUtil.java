@@ -10,9 +10,10 @@ import java.util.Date;
 
 public class JwtUtil {
     private static final String SECRET_KEY = "skaldjgflajshfiaufbKNZB.sadhad/adfahdfia0afakja3242_jkahdfk";
-    private static final long EXPIRATION_TIME = 86400000; // 1 ngày
+    private static final long EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000; // 1 ngày
 
     public static String generateToken(User user) {
+    	System.out.println("Generating token for role: " + user.getRole());
         return JWT.create()
                 .withSubject(user.getId())
                 .withClaim("email", user.getEmail())

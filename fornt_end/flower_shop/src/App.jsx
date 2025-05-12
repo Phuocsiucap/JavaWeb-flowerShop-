@@ -19,13 +19,13 @@ import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminOrderListPage from './pages/admin/AdminOrderListPage';
-<<<<<<< HEAD
+
 import AdminProfilePage from './pages/admin/AdminProfilePage';
-=======
 import OrdersPage from './pages/admin/OrdersPage';
->>>>>>> 436ae5e7fc5d6dbb139f58313af59e56eb167327
 import OrderDetailPage from './pages/admin/OrderDetailPage';
-import OrdersPage from './pages/admin/OrdersPage';
+
+import ProductsPage from './pages/admin/ProductsPage';
+
 function App() {
   return (
     <Router>
@@ -42,6 +42,7 @@ function App() {
               <Route path="/admin/dashboard" element={<HomeAdmin />} />
 			        <Route path="/admin/order" element={<AdminOrderListPage />} />
 			        <Route path="/admin/OrderDetail" element={<OrderDetailPage />} />
+			        <Route path="/admin/products" element={<ProductsPage />} />
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               
