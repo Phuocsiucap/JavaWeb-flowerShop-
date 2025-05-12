@@ -14,6 +14,7 @@ import AdminOrderListPage from './pages/admin/AdminOrderListPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import ProductPage from './pages/ProductPage';
 import ProductDetail from './pages/ProductDetail';
+import ProductsPage from './pages/admin/ProductsPage';
 function App() {
   return (
     <Router>
@@ -30,6 +31,7 @@ function App() {
               <Route path="/admin/home" element={<HomeAdmin />} />
 			        <Route path="/admin/order" element={<AdminOrderListPage />} />
 			        <Route path="/admin/OrderDetail" element={<OrderDetailPage />} />
+			        <Route path="/admin/products" element={<ProductsPage />} />
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetail />} />
             </Routes>
