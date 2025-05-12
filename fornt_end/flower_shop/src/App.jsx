@@ -19,7 +19,11 @@ import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminOrderListPage from './pages/admin/AdminOrderListPage';
+<<<<<<< HEAD
 import AdminProfilePage from './pages/admin/AdminProfilePage';
+=======
+import OrdersPage from './pages/admin/OrdersPage';
+>>>>>>> 436ae5e7fc5d6dbb139f58313af59e56eb167327
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import OrdersPage from './pages/admin/OrdersPage';
 function App() {
