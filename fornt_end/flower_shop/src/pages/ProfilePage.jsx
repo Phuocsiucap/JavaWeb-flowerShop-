@@ -62,7 +62,7 @@ const ProfilePage = () => {
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Please Login</h2>
           <p className="mb-4">You need to be logged in to view your profile.</p>
-          <Link to="/login" className="bg-emerald-600 text-white py-2 px-6 rounded-lg hover:bg-emerald-700">
+          <Link to="/login" className="bg-emerald-600 text-black bg-blue-700 border py-2 px-6 rounded-lg hover:bg-emerald-700">
             Login
           </Link>
         </div>

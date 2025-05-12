@@ -58,44 +58,52 @@ export const CartProvider = ({ children }) => {
      }
    };
 
-  // Xóa sản phẩm khỏi giỏ hàng
-  const removeFromCart = async (productId) => {
-    try {
-      const token = Cookies.get('token');
-      if (!token) throw new Error('Vui lòng đăng nhập để xóa sản phẩm');
-
-      const res = await axios.delete(`/api/cart/remove/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCart(res.data.cart || null);
-      setCartItems(res.data.items || []);
-      return res.data;
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      throw error;
-    }
-  };
-
-  // Cập nhật số lượng sản phẩm
   const updateItemQuantity = async (productId, quantity) => {
-    try {
-      const token = Cookies.get('token');
-      if (!token) throw new Error('Vui lòng đăng nhập để cập nhật giỏ hàng');
-      if (quantity < 1) throw new Error('Số lượng phải lớn hơn 0');
+  const token = Cookies.get('token');
+  try {
+    if (!token) throw new Error('Vui lòng đăng nhập để cập nhật giỏ hàng');
+    if (quantity < 1) throw new Error('Số lượng phải lớn hơn 0');
 
-      const res = await axios.put(
-        `/api/cart/update/${productId}`,
-        { quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCart(res.data.cart || null);
-      setCartItems(res.data.items || []);
-      return res.data;
-    } catch (error) {
-      console.error('Error updating item quantity:', error);
-      throw error;
+    const response = await fetch(`http://localhost:8080/flower_shop/api/cart/update/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ quantity }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update item quantity');
     }
-  };
+
+    fetchCart();
+  } catch (err) {
+    alert('Không thể cập nhật số lượng sản phẩm. Vui lòng thử lại sau.');
+  }
+};
+
+const removeFromCart = async (productId) => {
+  const token = Cookies.get('token');
+  try {
+    if (!token) throw new Error('Vui lòng đăng nhập để xóa sản phẩm');
+
+    const response = await fetch(`http://localhost:8080/flower_shop/api/cart/remove/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to remove product from cart');
+    }
+
+    fetchCart();
+  } catch (err) {
+    alert('Không thể xóa sản phẩm khỏi giỏ hàng. Vui lòng thử lại sau.');
+  }
+};
 
   // Xóa toàn bộ giỏ hàng
   const clearCart = async () => {
