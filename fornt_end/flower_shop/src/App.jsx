@@ -19,6 +19,7 @@ import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminOrderListPage from './pages/admin/AdminOrderListPage';
+import OrdersPage from './pages/admin/OrdersPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 function App() {
   return (
@@ -52,8 +53,8 @@ function App() {
                     <Route path="/home" element={<HomeAdmin />} />
                     <Route path="/" element={<HomeAdmin />} />
                     {/* <Route path="/products" element={<ProductsPage />} /> */}
-                    {/* <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/customers" element={<CustomersPage />} /> */}
+                    <Route path="/orders" element={<OrdersPage />} />
+                  
                     <Route path="/customers" element={<UsersManagement />} />
                   </Routes>
                 </ProtectedAdminRoute>

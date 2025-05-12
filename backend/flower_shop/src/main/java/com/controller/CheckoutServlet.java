@@ -1,112 +1,128 @@
 package com.controller;
 
-import java.io.IOException;
-import java.util.List;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import com.dao.OrderDAO;
+import com.dao.UserDao;
 import com.model.Order;
 import com.model.OrderItem;
-import com.dao.OrderDAO;
-import java.util.ArrayList;
+import com.model.User;
+import com.service.AuthService;
+import com.service.AuthServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-@WebServlet(name = "CheckoutServlet", urlPatterns = {"/checkout"})
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+@WebServlet("/api/checkout")
 public class CheckoutServlet extends HttpServlet {
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        
-        // Lấy giỏ hàng từ session
-        List<OrderItem> cart = (List<OrderItem>) session.getAttribute("cart");
-        
-        // Nếu giỏ hàng trống, chuyển hướng về trang giỏ hàng
-        if (cart == null || cart.isEmpty()) {
-            response.sendRedirect("cart");
-            return;
-        }
-        
-        // Tính tổng tiền
-        double totalAmount = 0;
-        for (OrderItem item : cart) {
-            totalAmount += item.getSubtotal();
-        }
-        
-        // Lưu tổng tiền vào request để hiển thị
-        request.setAttribute("totalAmount", totalAmount);
-        request.setAttribute("cart", cart);
-        
-        // Chuyển hướng đến trang thanh toán
-        request.getRequestDispatcher("/WEB-INF/views/checkout.jsp").forward(request, response);
-    }
+    private static final AuthService authService = new AuthServiceImpl(new UserDao());
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final OrderDAO orderDAO = new OrderDAO();
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        
-        // Lấy thông tin từ form
-        String shippingAddress = request.getParameter("shippingAddress");
-        String phoneNumber = request.getParameter("phoneNumber");
-        String paymentMethod = request.getParameter("paymentMethod");
-        
-        // Kiểm tra thông tin
-        if (shippingAddress == null || shippingAddress.trim().isEmpty() || 
-            phoneNumber == null || phoneNumber.trim().isEmpty() || 
-            paymentMethod == null || paymentMethod.trim().isEmpty()) {
-            
-            request.setAttribute("errorMessage", "Vui lòng điền đầy đủ thông tin thanh toán");
-            request.getRequestDispatcher("/WEB-INF/views/checkout.jsp").forward(request, response);
-            return;
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        try {
+            // Xác thực token
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Thiếu hoặc sai token");
+                return;
+            }
+
+            String token = authHeader.substring(7);
+            Optional<User> userOptional = authService.getUserFromToken(token);
+            if (!userOptional.isPresent()) {
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ");
+                return;
+            }
+
+            User user = userOptional.get();
+            String userId = user.getId();
+
+            // Đọc JSON từ frontend
+            CheckoutRequest checkoutRequest = objectMapper.readValue(request.getReader(), CheckoutRequest.class);
+
+            // Kiểm tra dữ liệu
+            if (checkoutRequest.shippingAddress == null || checkoutRequest.shippingAddress.trim().isEmpty()
+                || checkoutRequest.phoneNumber == null || checkoutRequest.phoneNumber.trim().isEmpty()
+                || checkoutRequest.paymentMethod == null || checkoutRequest.paymentMethod.trim().isEmpty()
+                || checkoutRequest.items == null || checkoutRequest.items.isEmpty()) {
+                sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Thiếu thông tin thanh toán hoặc giỏ hàng");
+                return;
+            }
+
+            // Tính tổng tiền
+            double totalAmount = 0;
+            for (OrderItem item : checkoutRequest.items) {
+                totalAmount += item.getSubtotal();
+            }
+
+            // Tạo đơn hàng
+            Order order = new Order();
+            order.setUserId(userId);
+            order.setTotalAmount(totalAmount);
+            order.setStatus("Pending");
+            order.setPaymentMethod(checkoutRequest.paymentMethod);
+            order.setShippingAddress(checkoutRequest.shippingAddress);
+            order.setPhoneNumber(checkoutRequest.phoneNumber);
+            order.setItems(checkoutRequest.items);
+
+            int orderId = orderDAO.createOrder(order);
+
+            if (orderId > 0) {
+                sendSuccessResponse(response, orderId);
+            } else {
+                sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Tạo đơn hàng thất bại");
+            }
+
+        } catch (IOException e) {
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "Lỗi JSON: " + e.getMessage());
+        } catch (Exception e) {
+            sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ: " + e.getMessage());
         }
-        
-        // Lấy thông tin người dùng từ session
-        Integer userId = (Integer) session.getAttribute("userId");
-        if (userId == null) {
-            response.sendRedirect("login");
-            return;
+    }
+
+    private static class CheckoutRequest {
+        public String shippingAddress;
+        public String phoneNumber;
+        public String paymentMethod;
+        public List<OrderItem> items;
+    }
+
+    private static class SuccessResponse {
+        public String message;
+        public int orderId;
+
+        public SuccessResponse(String message, int orderId) {
+            this.message = message;
+            this.orderId = orderId;
         }
-        
-        // Lấy giỏ hàng từ session
-        List<OrderItem> cart = (List<OrderItem>) session.getAttribute("cart");
-        if (cart == null || cart.isEmpty()) {
-            response.sendRedirect("cart");
-            return;
+    }
+
+    private void sendSuccessResponse(HttpServletResponse response, int orderId) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        objectMapper.writeValue(response.getWriter(), new SuccessResponse("Đặt hàng thành công", orderId));
+    }
+
+    private static class ErrorResponse {
+        public String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
         }
-        
-        // Tính tổng tiền
-        double totalAmount = 0;
-        for (OrderItem item : cart) {
-            totalAmount += item.getSubtotal();
-        }
-        
-        // Tạo đơn hàng mới
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setTotalAmount(totalAmount);
-        order.setStatus("Pending");
-        order.setPaymentMethod(paymentMethod);
-        order.setShippingAddress(shippingAddress);
-        order.setPhoneNumber(phoneNumber);
-        order.setItems(cart);
-        
-        // Lưu đơn hàng vào database
-        OrderDAO orderDAO = new OrderDAO();
-        int orderId = orderDAO.createOrder(order);
-        
-        if (orderId > 0) {
-            // Xóa giỏ hàng sau khi đặt hàng thành công
-            session.removeAttribute("cart");
-            
-            // Chuyển hướng đến trang xử lý thanh toán
-            response.sendRedirect("payment?orderId=" + orderId);
-        } else {
-            request.setAttribute("errorMessage", "Đã xảy ra lỗi khi tạo đơn hàng. Vui lòng thử lại.");
-            request.getRequestDispatcher("/WEB-INF/views/checkout.jsp").forward(request, response);
-        }
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int statusCode, String message) throws IOException {
+        response.setStatus(statusCode);
+        objectMapper.writeValue(response.getWriter(), new ErrorResponse(message));
     }
 }
