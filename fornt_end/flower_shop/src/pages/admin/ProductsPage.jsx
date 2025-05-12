@@ -126,13 +126,14 @@ const ProductsPage = () => {
   };
 
   // Handle product save (create or update)
-  const handleSaveProduct = async (productData) => {
+  const handleSaveProduct = async (formData) => {
     try {
       let url = "http://localhost:8080/flower_shop/products/";
       let method = "POST";
 
-      if (productData.id) {
-        url += productData.id;
+      // If editing an existing product, update the URL and method
+      if (formData.get('id')) {
+        url += formData.get('id');
         method = "PUT";
       }
 
@@ -141,10 +142,10 @@ const ProductsPage = () => {
       const response = await fetch(url, {
         method: method,
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // ✅ Gửi kèm token
+          // No need to set Content-Type, browser will set it automatically for FormData
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(productData),
+        body: formData
       });
 
       if (!response.ok) {
@@ -157,7 +158,7 @@ const ProductsPage = () => {
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
       toast.success(
-        productData.id
+        formData.get('id')
           ? "Sản phẩm đã được cập nhật thành công"
           : "Sản phẩm đã được thêm thành công"
       );
@@ -409,6 +410,7 @@ const ProductsPage = () => {
                           onChange={() => toggleSelectProduct(product.id)}
                         />
                       </td>
+                     
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 rounded-md bg-gray-200 flex-shrink-0 overflow-hidden">

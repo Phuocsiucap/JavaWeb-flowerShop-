@@ -4,7 +4,6 @@ import { X, Link } from 'lucide-react';
 
 const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
   const initialFormData = {
-    // Removed id field as it's automatically generated
     name: '',
     description: '',
     price: 0,
@@ -18,13 +17,13 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [imagePreview, setImagePreview] = useState('');
+  const [imageFile, setImageFile] = useState(null);
 
   // Initialize form data if editing an existing product
   useEffect(() => {
     if (product) {
       setFormData({
-        // Keep id for existing products (for updating), but don't show in form
-        ...(product.id ? { id: product.id } : {undefined}),
+        id: product.id || undefined,
         name: product.name || '',
         description: product.description || '',
         price: product.price || 0,
@@ -97,6 +96,19 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
     return newErrors;
   };
 
+  // Handle file input changes
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -109,9 +121,24 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
       return;
     }
     
+    // Create FormData for multipart/form-data
+    const formDataToSubmit = new FormData();
+    
+    // Append text fields
+    Object.keys(formData).forEach(key => {
+      // Only append non-null values
+      if (formData[key] !== null && formData[key] !== undefined) {
+        formDataToSubmit.append(key, formData[key]);
+      }
+    });
+    
+    // Append image file if exists
+    if (imageFile) {
+      formDataToSubmit.append('image', imageFile);
+    }
+    
     // Call onSave function from parent component
-    onSave(formData);
-    console.log(formData) 
+    onSave(formDataToSubmit);
   };
 
   // If the modal is not open, don't render anything
@@ -275,17 +302,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setImagePreview(reader.result);
-                            setFormData({ ...formData, imageUrl: reader.result });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={handleFileChange}
                       className="block w-full text-sm text-gray-500
                         file:mr-4 file:py-2 file:px-4
                         file:rounded-md file:border-0
@@ -331,6 +348,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
                       onClick={() => {
                         setImagePreview('');
                         setFormData({ ...formData, imageUrl: '' });
+                        setImageFile(null);
                       }}
                     >
                       <X size={14} />

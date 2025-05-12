@@ -50,9 +50,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    Cookies.remove('token'); // Xóa token
+    
     setCurrentUser(null);
-    await axios.post('/api/auth/logout');
+    var res = await axios.post('/api/auth/logout');
+    Cookies.remove('token'); // Xóa token
+    return res.data;
+    
   };
 
   const forgotPassword = async (email) => {

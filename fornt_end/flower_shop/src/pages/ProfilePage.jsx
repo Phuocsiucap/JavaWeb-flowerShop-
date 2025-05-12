@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import OrderHistory from '../components/ui/OrderHistory';  // Import component OrderHistory
+import OrderHistory from '../components/ui/OrderHistory';
+import AlertNotification from '../components/ui/AlertNotification';
 
-const ProfilePage = () => {
-  const {setInfo, currentUser, updateUserProfile, logout } = useContext(AuthContext);
+const ProfilePage = () => {  const {setInfo, currentUser, updateUserProfile, logout } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     id: '',
     email: '',
@@ -15,9 +15,8 @@ const ProfilePage = () => {
   });
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('info');
-
+  const [alert, setAlert] = useState({ show: false, type: '', message: '' });
   useEffect(() => {
-    setInfo();
     if (currentUser) {
       setFormData({
         id: currentUser.id || '',
@@ -31,7 +30,7 @@ const ProfilePage = () => {
       // Fetch user orders
       fetchUserOrders();
     }
-  }, [  ]);
+  }, [currentUser]);
 
   const fetchUserOrders = async () => {
     // This would be replaced with an actual API call
@@ -43,11 +42,25 @@ const ProfilePage = () => {
         { id: "ORD-125", date: "2025-03-28", total: 78.25, status: "Delivered" }
       ]);
     }, 500);
-  };
-
-  const handleLogout = () => {
-    logout();
-    // Redirect to home page would happen in the AuthContext
+  };  const handleLogout = async (e) => {
+    e.preventDefault();
+    try {
+      await logout();
+      setAlert({
+        show: true,
+        type: 'success',
+        message: 'Đăng xuất thành công!'
+      });
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+    } catch (error) {
+      setAlert({
+        show: true,
+        type: 'error',
+        message: 'Đăng xuất thất bại. Vui lòng thử lại!'
+      });
+    }
   };
 
   const handleUpdateProfile = (e) => {
@@ -69,9 +82,14 @@ const ProfilePage = () => {
       </div>
     );
   }
-
   return (
     <div className="container mx-auto px-4 py-8">
+      <AlertNotification
+        show={alert.show}
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert({ ...alert, show: false })}
+      />
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
