@@ -5,6 +5,7 @@ import AdminLayout from '../../components/admin/Layout';
 
 const OrdersPage = () => {
   const [selectedTab, setSelectedTab] = useState('all');
+  const [sortOption, setSortOption] = useState('newest');
   
   const orders = [
     { 
@@ -77,16 +78,44 @@ const OrdersPage = () => {
       default: return "bg-gray-100 text-gray-800";
     }
   };
-  
-  const filteredOrders = selectedTab === 'all' 
-    ? orders 
-    : orders.filter(order => {
-        if (selectedTab === 'processing') return order.status === "Đang xử lý";
-        if (selectedTab === 'shipping') return order.status === "Đang giao";
-        if (selectedTab === 'completed') return order.status === "Đã giao";
-        if (selectedTab === 'cancelled') return order.status === "Đã hủy";
-        return true;
-      });
+
+  // Hàm xử lý sắp xếp đơn hàng
+  const getSortedOrders = (orders) => {
+    const sortedOrders = [...orders];
+    switch (sortOption) {
+      case 'newest':
+        return sortedOrders.sort((a, b) => {
+          const dateA = new Date(a.date.split('/').reverse().join('-'));
+          const dateB = new Date(b.date.split('/').reverse().join('-'));
+          return dateB - dateA;
+        });
+      case 'oldest':
+        return sortedOrders.sort((a, b) => {
+          const dateA = new Date(a.date.split('/').reverse().join('-'));
+          const dateB = new Date(b.date.split('/').reverse().join('-'));
+          return dateA - dateB;
+        });
+      case 'priceHighToLow':
+        return sortedOrders.sort((a, b) => b.amount - a.amount);
+      case 'priceLowToHigh':
+        return sortedOrders.sort((a, b) => a.amount - b.amount);
+      default:
+        return sortedOrders;
+    }
+  };
+
+  // Áp dụng cả filter và sort
+  const filteredOrders = getSortedOrders(
+    selectedTab === 'all' 
+      ? orders 
+      : orders.filter(order => {
+          if (selectedTab === 'processing') return order.status === "Đang xử lý";
+          if (selectedTab === 'shipping') return order.status === "Đang giao";
+          if (selectedTab === 'completed') return order.status === "Đã giao";
+          if (selectedTab === 'cancelled') return order.status === "Đã hủy";
+          return true;
+        })
+  );
   
   return (
     <AdminLayout>
@@ -181,11 +210,15 @@ const OrdersPage = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1">
                 <label className="text-sm text-gray-500">Sắp xếp theo:</label>
-                <select className="border rounded p-1 text-sm">
-                  <option>Mới nhất</option>
-                  <option>Cũ nhất</option>
-                  <option>Giá cao - thấp</option>
-                  <option>Giá thấp - cao</option>
+                <select 
+                  className="border rounded p-1 text-sm"
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value)}
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="priceHighToLow">Giá cao - thấp</option>
+                  <option value="priceLowToHigh">Giá thấp - cao</option>
                 </select>
               </div>
             </div>

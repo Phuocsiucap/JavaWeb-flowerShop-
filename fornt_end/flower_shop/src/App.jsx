@@ -19,7 +19,9 @@ import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminOrderListPage from './pages/admin/AdminOrderListPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
+import OrdersPage from './pages/admin/OrdersPage';
 function App() {
   return (
     <Router>
@@ -43,17 +45,18 @@ function App() {
         </CartProvider>
         <AdminProvider>
           <Routes>
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route 
-              path="/admin/*" 
+            <Route path="/admin/login" element={<AdminLogin />} />           
+             <Route path="/admin/*" 
               element={
                 <ProtectedAdminRoute>
                   <Routes>
                     <Route path="/home" element={<HomeAdmin />} />
                     <Route path="/" element={<HomeAdmin />} />
+                    <Route path="/profile" element={<AdminProfilePage />} />
                     {/* <Route path="/products" element={<ProductsPage />} /> */}
-                    {/* <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/customers" element={<CustomersPage />} /> */}
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/orders/:id" element={<OrderDetailPage />} />
+                   
                     <Route path="/customers" element={<UsersManagement />} />
                   </Routes>
                 </ProtectedAdminRoute>

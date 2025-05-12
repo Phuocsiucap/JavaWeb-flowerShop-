@@ -73,12 +73,12 @@ const UsersManagement = () => {
 
   const filterUsers = () => {
     let result = [...users];
-    
-    // Filter by search term
+      // Filter by search term
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase().trim();
       result = result.filter(user => 
-        (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.name && user.name.toLowerCase().includes(searchLower)) ||
+        (user.email && user.email.toLowerCase().includes(searchLower)) ||
         (user.phone && user.phone.includes(searchTerm))
       );
     }

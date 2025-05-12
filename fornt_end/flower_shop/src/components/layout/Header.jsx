@@ -30,9 +30,9 @@ function Header() {
             <button className="text-gray-700 hover:text-pink-600">
               <Search size={28} />
             </button>
-            <Link to="/wishlist" className="text-gray-700 hover:text-pink-600">
+            {/* <Link to="/wishlist" className="text-gray-700 hover:text-pink-600">
               <Heart size={28} />
-            </Link>
+            </Link> */}
             <Link to="/cart" className="text-gray-700 hover:text-pink-600 relative">
               <ShoppingCart size={28} />
               <span className="absolute -top-2 -right-2 bg-pink-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-base font-semibold">3</span>

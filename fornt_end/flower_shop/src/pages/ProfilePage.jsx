@@ -62,7 +62,7 @@ const ProfilePage = () => {
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Please Login</h2>
           <p className="mb-4">You need to be logged in to view your profile.</p>
-          <Link to="/login" className="bg-emerald-600 text-white py-2 px-6 rounded-lg hover:bg-emerald-700">
+          <Link to="/login" className="bg-emerald-600 text-black border py-2 px-6 rounded-lg hover:bg-emerald-700">
             Login
           </Link>
         </div>
@@ -98,12 +98,7 @@ const ProfilePage = () => {
               >
                 Order History
               </button>
-              <button 
-                className={`py-2 px-4 ${activeTab === 'wishlist' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-600'}`}
-                onClick={() => setActiveTab('wishlist')}
-              >
-                Wishlist
-              </button>
+              
             </div>
           </div>
 
@@ -164,17 +159,7 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {activeTab === 'wishlist' && (
-            <div>
-              <h2 className="text-xl font-medium mb-6">My Wishlist</h2>
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">Your wishlist is empty.</p>
-                <Link to="/products" className="text-emerald-600 hover:text-emerald-800">
-                  Browse our products
-                </Link>
-              </div>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

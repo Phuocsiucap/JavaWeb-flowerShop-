@@ -12,13 +12,6 @@ const HomeAdmin = () => {
     const checkToken = async () => {
       try {
         const valid = await verifyTokenAdmin();
-
-
-        if (valid) {
-          alert("Token hợp lệ");
-        } else {
-          alert("Token không hợp lệ");
-        }
         setIsTokenValid(valid);
       } catch (error) {
         console.error("Error verifying token:", error);
