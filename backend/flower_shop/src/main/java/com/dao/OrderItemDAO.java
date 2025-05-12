@@ -14,16 +14,16 @@ import com.util.DatabaseConnection;
 public class OrderItemDAO extends DatabaseConnection {
     
     public boolean createOrderItem(OrderItem item) {
-        String sql = "INSERT INTO order_items (order_id, product_id, product_name, quantity, price, image_url) "
+        String sql = "INSERT INTO orderitem (orderId, productId, productName, quantity, price, imageUrl) "
                    + "VALUES (?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
-            statement.setInt(1, item.getOrderId());
-            statement.setInt(2, item.getProductId());
-            statement.setString(3, item.getProductName());
-            statement.setInt(4, item.getQuantity());
-            statement.setDouble(5, item.getPrice());
-            statement.setString(6, item.getImageUrl());
+            statement.setInt(2, item.getOrderId());
+            statement.setInt(3, item.getProductId());
+            statement.setString(4, item.getProductName());
+            statement.setInt(5, item.getQuantity());
+            statement.setDouble(6, item.getPrice());
+            statement.setString(7, item.getImageUrl());
             
             int affectedRows = statement.executeUpdate();
             return affectedRows > 0;
@@ -35,7 +35,7 @@ public class OrderItemDAO extends DatabaseConnection {
     
     public List<OrderItem> getOrderItemsByOrderId(int orderId) {
         List<OrderItem> items = new ArrayList<>();
-        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+        String sql = "SELECT * FROM orderitem WHERE orderId = ?";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setInt(1, orderId);
@@ -43,13 +43,13 @@ public class OrderItemDAO extends DatabaseConnection {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     OrderItem item = new OrderItem();
-                    item.setOrderItemId(resultSet.getInt("order_item_id"));
-                    item.setOrderId(resultSet.getInt("order_id"));
-                    item.setProductId(resultSet.getInt("product_id"));
-                    item.setProductName(resultSet.getString("product_name"));
+                    item.setOrderItemId(resultSet.getInt("orderItemId"));
+                    item.setOrderId(resultSet.getInt("orderId"));
+                    item.setProductId(resultSet.getInt("productId"));
+                    item.setProductName(resultSet.getString("productName"));
                     item.setQuantity(resultSet.getInt("quantity"));
                     item.setPrice(resultSet.getDouble("price"));
-                    item.setImageUrl(resultSet.getString("image_url"));
+                    item.setImageUrl(resultSet.getString("imageUrl"));
                     
                     items.add(item);
                 }

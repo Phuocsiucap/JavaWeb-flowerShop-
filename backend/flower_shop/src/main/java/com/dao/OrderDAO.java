@@ -17,16 +17,16 @@ import com.util.DatabaseConnection;
 public class OrderDAO extends DatabaseConnection {
     
     public int createOrder(Order order) {
-        String sql = "INSERT INTO orders (user_id, order_date, total_amount, status, payment_method, shipping_address, phone_number) "
+        String sql = "INSERT INTO order (userId, orderDate, totalAmount, status, paymentMethod, shippingAddress, phoneNumber) "
                    + "VALUES (?, NOW(), ?, ?, ?, ?, ?)";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setInt(1, order.getUserId());
-            statement.setDouble(2, order.getTotalAmount());
-            statement.setString(3, order.getStatus());
-            statement.setString(4, order.getPaymentMethod());
-            statement.setString(5, order.getShippingAddress());
-            statement.setString(6, order.getPhoneNumber());
+        	statement.setString(2, order.getUserId());
+            statement.setDouble(3, order.getTotalAmount());
+            statement.setString(4, order.getStatus());
+            statement.setString(5, order.getPaymentMethod());
+            statement.setString(6, order.getShippingAddress());
+            statement.setString(7, order.getPhoneNumber());
             
             int affectedRows = statement.executeUpdate();
             
@@ -58,7 +58,7 @@ public class OrderDAO extends DatabaseConnection {
     }
     
     public Order getOrderById(int orderId) {
-        String sql = "SELECT * FROM orders WHERE order_id = ?";
+        String sql = "SELECT * FROM order WHERE orderId = ?";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setInt(1, orderId);
@@ -66,14 +66,14 @@ public class OrderDAO extends DatabaseConnection {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     Order order = new Order();
-                    order.setOrderId(resultSet.getInt("order_id"));
-                    order.setUserId(resultSet.getInt("user_id"));
-                    order.setOrderDate(resultSet.getTimestamp("order_date"));
-                    order.setTotalAmount(resultSet.getDouble("total_amount"));
+                    order.setOrderId(resultSet.getInt("orderId"));
+                    order.setUserId(resultSet.getString("userId"));
+                    order.setOrderDate(resultSet.getTimestamp("orderDate"));
+                    order.setTotalAmount(resultSet.getDouble("totalAmount"));
                     order.setStatus(resultSet.getString("status"));
-                    order.setPaymentMethod(resultSet.getString("payment_method"));
-                    order.setShippingAddress(resultSet.getString("shipping_address"));
-                    order.setPhoneNumber(resultSet.getString("phone_number"));
+                    order.setPaymentMethod(resultSet.getString("paymentMethod"));
+                    order.setShippingAddress(resultSet.getString("shippingAddress"));
+                    order.setPhoneNumber(resultSet.getString("phoneNumber"));
                     
                     // Get order items
                     OrderItemDAO orderItemDAO = new OrderItemDAO();
@@ -91,7 +91,7 @@ public class OrderDAO extends DatabaseConnection {
     }
     
     public boolean updateOrderStatus(int orderId, String status) {
-        String sql = "UPDATE orders SET status = ? WHERE order_id = ?";
+        String sql = "UPDATE order SET status = ? WHERE orderId = ?";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setString(1, status);
@@ -107,7 +107,7 @@ public class OrderDAO extends DatabaseConnection {
     
     public List<Order> getOrdersByUserId(int userId) {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date DESC";
+        String sql = "SELECT * FROM order WHERE userId = ? ORDER BY orderDate DESC";
         
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setInt(1, userId);
@@ -115,14 +115,14 @@ public class OrderDAO extends DatabaseConnection {
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     Order order = new Order();
-                    order.setOrderId(resultSet.getInt("order_id"));
-                    order.setUserId(resultSet.getInt("user_id"));
-                    order.setOrderDate(resultSet.getTimestamp("order_date"));
-                    order.setTotalAmount(resultSet.getDouble("total_amount"));
+                    order.setOrderId(resultSet.getInt("orderId"));
+                    order.setUserId(resultSet.getString("userId"));
+                    order.setOrderDate(resultSet.getTimestamp("orderDate"));
+                    order.setTotalAmount(resultSet.getDouble("totalAmount"));
                     order.setStatus(resultSet.getString("status"));
-                    order.setPaymentMethod(resultSet.getString("payment_method"));
-                    order.setShippingAddress(resultSet.getString("shipping_address"));
-                    order.setPhoneNumber(resultSet.getString("phone_number"));
+                    order.setPaymentMethod(resultSet.getString("paymentMethod"));
+                    order.setShippingAddress(resultSet.getString("shippingAddress"));
+                    order.setPhoneNumber(resultSet.getString("phoneNumber"));
                     
                     orders.add(order);
                 }
