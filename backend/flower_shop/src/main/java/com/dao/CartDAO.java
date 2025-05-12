@@ -94,7 +94,7 @@ public class CartDAO {
         }
     }
 
-    // Cập nhật CartItem
+ // Cập nhật CartItem
     public void updateCartItem(CartItem item) {
         String sql = "UPDATE cartitem SET quantity = ?, price = ?, name = ?, imageUrl = ? WHERE cartId = ? AND productId = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -105,6 +105,19 @@ public class CartDAO {
             stmt.setString(4, item.getImageUrl());
             stmt.setInt(5, item.getCartId());
             stmt.setInt(6, item.getProductId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Xóa CartItem theo cartId và productId
+    public void deleteCartItem(int cartId, int productId) {
+        String sql = "DELETE FROM cartitem WHERE cartId = ? AND productId = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, cartId);
+            stmt.setInt(2, productId);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

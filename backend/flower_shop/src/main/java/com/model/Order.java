@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class Order {
     private int orderId;
-    private int userId;
+    private String userId;
     private Date orderDate;
     private double totalAmount;
     private String status; // Pending, Paid, Cancelled
@@ -21,7 +21,7 @@ public class Order {
         this.status = "Pending";
     }
 
-    public Order(int orderId, int userId, double totalAmount, String paymentMethod, String shippingAddress, String phoneNumber) {
+    public Order(int orderId, String userId, double totalAmount, String paymentMethod, String shippingAddress, String phoneNumber) {
         this.orderId = orderId;
         this.userId = userId;
         this.orderDate = new Date();
@@ -42,15 +42,15 @@ public class Order {
         this.orderId = orderId;
     }
 
-    public int getUserId() {
-        return userId;
-    }
+    public String getUserId() {
+		return userId;
+	}
 
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Date getOrderDate() {
+	public Date getOrderDate() {
         return orderDate;
     }
 
