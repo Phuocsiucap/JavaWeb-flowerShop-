@@ -20,14 +20,14 @@ const LoginPage = () => {
       console.log(email, password);
       const userData = await loginAdmin(email, password);  // Gọi login từ AdminContext
 
-      if (userData ) {
+      
         if (await verifyTokenAdmin()) {
           navigate("/admin/home");
         }else {
           alert("Bạn không có quyền truy cập vào trang này");
         }
        
-      }
+      
     } catch (err) {
       setError("Đăng nhập thất bại");
     } finally {

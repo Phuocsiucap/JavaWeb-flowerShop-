@@ -1,13 +1,10 @@
 package com.controller;
 
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.dao.ProductDAO;
 import com.dao.ProductDAOImpl;
-import com.dto.request.RegisterRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.model.Product;
 
 import javax.servlet.ServletException;
@@ -31,7 +28,6 @@ import java.util.List;
 public class ProductServlet extends HttpServlet {
     private final ProductDAO productDAO = new ProductDAOImpl();
     private final Gson gson = new Gson();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Upload image to ImgBB and return image URL
     private String uploadToImgBB(Part filePart) throws IOException {
@@ -124,10 +120,6 @@ public class ProductServlet extends HttpServlet {
             product.setOccasion(occasion);
             product.setStock(stock);
             product.setImageUrl(imageUrl);
-//            product.setName(name);
-//            product.setPrice(price);
-//            product.setDescription(description);
-//            product.setImageUrl(imageUrl);
 
             boolean success = productDAO.addProduct(product);
             if (success) {
@@ -169,12 +161,6 @@ public class ProductServlet extends HttpServlet {
 
             String imageUrl = uploadToImgBB(request.getPart("image"));
             if (imageUrl == null) imageUrl = existingProduct.getImageUrl();
-            else product.setImageUrl(imageUrl);
-//
-//            existingProduct.setName(name);
-//            existingProduct.setPrice(price);
-//            existingProduct.setDescription(description);
-//            existingProduct.setImageUrl(imageUrl);
 
             existingProduct.setName(name);
             existingProduct.setPrice(price);

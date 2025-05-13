@@ -1,8 +1,8 @@
 // src/pages/admin/ProductsPage.jsx
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
-import BASE_URL  from "../../axiosInstance";
 import AppLayout from "../../components/admin/Layout";
+
 import {
   Search,
   Plus,
@@ -129,7 +129,6 @@ const ProductsPage = () => {
   // Handle product save (create or update)
   const handleSaveProduct = async (productData) => {
     try {
-      console.log("Form data:", formData);
       let url = "http://localhost:8080/flower_shop/products/";
       let method = "POST";
 
@@ -426,7 +425,7 @@ const ProductsPage = () => {
                           <div className="h-10 w-10 rounded-md bg-gray-200 flex-shrink-0 overflow-hidden">
                             {product.imageUrl && (
                               <img
-                                src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
+                                src={product.imageUrl}
                                 alt={product.name}
                                 className="h-full w-full object-cover"
                                 onError={(e) =>

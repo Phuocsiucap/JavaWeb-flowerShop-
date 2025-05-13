@@ -153,7 +153,7 @@ public class CustomManagementController extends HttpServlet {
                     .success(false)
                     .message("Bạn không đủ quyền để thực hiện hành động này")
                     .build(), HttpServletResponse.SC_CREATED);
-
+        }
         String userId = pathInfo.substring(1);
         boolean success = managementService.deleteUser(userId);
         
