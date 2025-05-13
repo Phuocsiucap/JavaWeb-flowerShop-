@@ -25,21 +25,7 @@ public class ImageServlet extends HttpServlet {
 
         // Đường dẫn tuyệt đối đến thư mục "images"
         String imageDir = "E:\\JavaWeb-flowerShop-\\JavaWeb-flowerShop-\\backend\\flower_shop\\images";
-        File current = new File(".");
-        System.out.println("Đường dẫn gốc dự án (lúc phát triển): " + current.getAbsolutePath());
-        URL url = getClass().getClassLoader().getResource("config.properties");
-        if (url != null) {
-            File file = null;
-			try {
-				file = new File(url.toURI());
-			} catch (URISyntaxException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            System.out.println("Đường dẫn thực: " + file.getAbsolutePath());
-        }
-
-        System.out.println("==================="+getServletContext().getRealPath("/")+ "++++++++++++++++++++++++++");
+        
         Path filePath = Paths.get(imageDir, filename);
         File file = filePath.toFile();
 

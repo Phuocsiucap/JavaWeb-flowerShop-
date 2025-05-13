@@ -10,17 +10,23 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   // Lấy login từ AdminContext
-  const { loginAdmin } = useContext(AdminContext);
+  const { loginAdmin, verifyTokenAdmin } = useContext(AdminContext);
 
   const loginWithEmail = async () => {
     setIsLoading(true);
     setError("");
 
     try {
+      console.log(email, password);
       const userData = await loginAdmin(email, password);  // Gọi login từ AdminContext
 
-      if (userData) {
-        navigate("/admin/home");  // Nếu đăng nhập thành công, điều hướng về trang chủ
+      if (userData ) {
+        if (await verifyTokenAdmin()) {
+          navigate("/admin/home");
+        }else {
+          alert("Bạn không có quyền truy cập vào trang này");
+        }
+       
       }
     } catch (err) {
       setError("Đăng nhập thất bại");

@@ -32,8 +32,8 @@ const UserTable = ({ users, onEditUser, onDeleteUser }) => {
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white">
+    <div className="overflow-x-auto text-sx">
+      <table className="min-w-full bg-white ">
         <thead className="bg-gray-50">
           <tr>
             <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
@@ -51,9 +51,23 @@ const UserTable = ({ users, onEditUser, onDeleteUser }) => {
           {users.length > 0 ? (
             users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
-                <td className="py-4 px-4 whitespace-nowrap">{user.id}</td>
+                <td className="py-4 px-4 whitespace-nowrap">
+                  <input
+                    type="text"
+                    value={user.id}
+                    readOnly
+                    className="w-40 px-2 py-1 border rounded bg-gray-50 text-sm text-gray-800 cursor-text overflow-x-auto"
+                  />
+                </td>
                 <td className="py-4 px-4 whitespace-nowrap">{user.name}</td>
-                <td className="py-4 px-4 whitespace-nowrap">{user.email}</td>
+                <td className="py-4 px-4 whitespace-nowrap">
+                  <input
+                    type="text"
+                    value={user.email}
+                    readOnly
+                    className="w-40 px-2 py-1 border rounded bg-gray-50 text-sm text-gray-800 cursor-text overflow-x-auto"
+                  />
+                </td>
                 <td className="py-4 px-4 whitespace-nowrap">{user.phone}</td>
                 <td className="py-4 px-4 whitespace-nowrap">{getroleBadge(user.role)}</td>
                 <td className="py-4 px-4 whitespace-nowrap">{getStatusBadge(user.status)}</td>

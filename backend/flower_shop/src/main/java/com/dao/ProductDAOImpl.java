@@ -95,9 +95,17 @@ public class ProductDAOImpl implements ProductDAO {
     }
 
     @Override
-    public boolean updateProduct(Product product) {
+    public boolean updateProduct(Product product, Product newInfo) {
         String sql = "UPDATE products SET name=?, description=?, price=?, imageUrl=?, discount=?, category=?, occasion=?, stock=? WHERE id=?";
-
+     // Update `product` fields only if `newInfo` has non-null or non-zero values
+        if (newInfo.getName() != null) product.setName(newInfo.getName());
+        if (newInfo.getDescription() != null) product.setDescription(newInfo.getDescription());
+        if (newInfo.getPrice() != 0) product.setPrice(newInfo.getPrice());
+        if (newInfo.getImageUrl() != null) product.setImageUrl(newInfo.getImageUrl());
+        if (newInfo.getDiscount() != 0) product.setDiscount(newInfo.getDiscount());
+        if (newInfo.getCategory() != null) product.setCategory(newInfo.getCategory());
+        if (newInfo.getOccasion() != null) product.setOccasion(newInfo.getOccasion());
+        if (newInfo.getStock() != 0) product.setStock(newInfo.getStock());
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 

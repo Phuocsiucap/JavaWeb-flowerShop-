@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
+
 
 const Cart = () => {
   const { cartItems, totalItems, totalPrice, removeFromCart, updateItemQuantity, clearCart } = useCart();
@@ -78,8 +80,8 @@ const Cart = () => {
                     />
                   </div>
                   <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
-                    <img
-                      src={item.imageUrl}
+                    <img                
+                      src={`${BASE_URL}${item.imageUrl}`|| '/placeholder.jpg'}
                       alt={item.name}
                       className="w-full h-full object-center object-cover"
                     />

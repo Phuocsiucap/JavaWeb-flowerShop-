@@ -7,6 +7,7 @@ export const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null); // Lưu Cart { cartId, shippingFee, userId }
   const [cartItems, setCartItems] = useState([]); // Lưu danh sách CartItem
+  const [countItem, setCountItem] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCart = async () => {
@@ -19,6 +20,7 @@ export const CartProvider = ({ children }) => {
           // Giả định res.data là { cart: { cartId, shippingFee, userId }, items: CartItem[] }
           setCart(res.data.cart || null);
           setCartItems(res.data.items || []);
+          setCountItem(res.data.items?.length || 0);
         } catch (error) {
           console.error('Error fetching cart:', error);
           setCart(null);
@@ -133,6 +135,7 @@ const removeFromCart = async (productId) => {
     totalItems,
     totalPrice,
     loading,
+    countItem,
     addToCart,
     removeFromCart,
     updateItemQuantity,

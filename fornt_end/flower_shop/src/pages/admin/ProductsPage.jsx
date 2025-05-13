@@ -1,7 +1,8 @@
 // src/pages/admin/ProductsPage.jsx
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
-
+import BASE_URL  from "../../axiosInstance";
+import AppLayout from "../../components/admin/Layout";
 import {
   Search,
   Plus,
@@ -128,6 +129,7 @@ const ProductsPage = () => {
   // Handle product save (create or update)
   const handleSaveProduct = async (formData) => {
     try {
+      console.log("Form data:", formData);
       let url = "http://localhost:8080/flower_shop/products/";
       let method = "POST";
 
@@ -247,6 +249,7 @@ const ProductsPage = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
+    <AppLayout>
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
@@ -416,7 +419,7 @@ const ProductsPage = () => {
                           <div className="h-10 w-10 rounded-md bg-gray-200 flex-shrink-0 overflow-hidden">
                             {product.imageUrl && (
                               <img
-                                src={product.imageUrl}
+                                src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
                                 alt={product.name}
                                 className="h-full w-full object-cover"
                                 onError={(e) =>
@@ -604,6 +607,7 @@ const ProductsPage = () => {
         />
       )}
     </div>
+    </AppLayout>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../config';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
@@ -518,7 +519,7 @@ export default function CheckoutPage() {
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
                     <img
-                      src={item.image}
+                      src={`${BASE_URL}${item.imageUrl}`|| '/placeholder.jpg'}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />

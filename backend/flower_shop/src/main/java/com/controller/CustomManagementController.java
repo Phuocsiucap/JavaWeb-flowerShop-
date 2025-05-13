@@ -77,14 +77,24 @@ public class CustomManagementController extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         
         try {
-            User newUser = objectMapper.readValue(req.getInputStream(), User.class);
-            User createdUser = managementService.createUser(newUser);
-            
-            sendJsonResponse(resp, ApiResponse.builder()
-                    .success(true)
-                    .message("User created successfully")
-                    .data(Map.of("user", UserMapper.toMap(createdUser)))
-                    .build(), HttpServletResponse.SC_CREATED);
+        	String role  = (String) req.getAttribute("role");
+        	System.out.println(role);
+        	if("admin".equals(role)) {
+        		User newUser = objectMapper.readValue(req.getInputStream(), User.class);
+                User createdUser = managementService.createUser(newUser);
+                
+                sendJsonResponse(resp, ApiResponse.builder()
+                        .success(true)
+                        .message("User created successfully")
+                        .data(Map.of("user", UserMapper.toMap(createdUser)))
+                        .build(), HttpServletResponse.SC_CREATED);
+        	}
+        	else {
+        		sendJsonResponse(resp, ApiResponse.builder()
+                        .success(false)
+                        .message("Bạn không đủ quyền để thực hiện hành động này")           
+                        .build(), HttpServletResponse.SC_CREATED);
+        	}
         } catch (Exception e) {
             sendErrorResponse(resp, "Failed to create user: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -98,9 +108,16 @@ public class CustomManagementController extends HttpServlet {
             sendErrorResponse(resp, "User ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
+        String role  = (String) req.getAttribute("role");
+    	if(!"admin".equals(role)) {
+            sendJsonResponse(resp, ApiResponse.builder()
+                    .success(false)
+                    .message("Bạn không đủ quyền để thực hiện hành động này")
+                    .build(), HttpServletResponse.SC_CREATED);
+    	}
         String userId = pathInfo.substring(1);
         try {
+        	
             User updatedUser = objectMapper.readValue(req.getInputStream(), User.class);
             updatedUser.setId(userId); // Ensure ID matches path
             
@@ -130,6 +147,12 @@ public class CustomManagementController extends HttpServlet {
             sendErrorResponse(resp, "User ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        String role  = (String) req.getAttribute("role");
+        if(!"admin".equals(role)) {
+            sendJsonResponse(resp, ApiResponse.builder()
+                    .success(false)
+                    .message("Bạn không đủ quyền để thực hiện hành động này")
+                    .build(), HttpServletResponse.SC_CREATED);
 
         String userId = pathInfo.substring(1);
         boolean success = managementService.deleteUser(userId);

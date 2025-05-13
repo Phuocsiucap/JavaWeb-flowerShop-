@@ -14,6 +14,7 @@ import { AdminProvider } from './contexts/AdminContext';
 import ProductPage from './pages/ProductPage';
 import ProductDetail from './pages/ProductDetail';
 
+import Dashboard from './pages/admin/Dashboard';
 import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
@@ -23,7 +24,7 @@ import AdminOrderListPage from './pages/admin/AdminOrderListPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrdersPage from './pages/admin/OrdersPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
-
+import RevenueReport from './pages/admin/RevenueReport';
 import ProductsPage from './pages/admin/ProductsPage';
 
 function App() {
@@ -39,10 +40,7 @@ function App() {
               <Route path="/account" element={<Profile />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/admin/dashboard" element={<HomeAdmin />} />
-			        <Route path="/admin/order" element={<AdminOrderListPage />} />
-			        <Route path="/admin/OrderDetail" element={<OrderDetailPage />} />
-			        <Route path="/admin/products" element={<ProductsPage />} />
+              
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               
@@ -57,13 +55,15 @@ function App() {
               element={
                 <ProtectedAdminRoute>
                   <Routes>
+                    <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/home" element={<HomeAdmin />} />
                     <Route path="/" element={<HomeAdmin />} />
                     <Route path="/profile" element={<AdminProfilePage />} />
                     {/* <Route path="/products" element={<ProductsPage />} /> */}
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
-                   
+                    <Route path="/reports" element={<RevenueReport />} />
+                    <Route path="/products" element={<ProductsPage />} />
                     <Route path="/customers" element={<UsersManagement />} />
                   </Routes>
                 </ProtectedAdminRoute>

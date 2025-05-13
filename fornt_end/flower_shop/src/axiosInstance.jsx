@@ -1,7 +1,8 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { BASE_URL } from './config';
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/flower_shop',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }

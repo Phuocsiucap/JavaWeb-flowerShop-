@@ -1,6 +1,8 @@
 // src/components/admin/ProductFormModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Link } from 'lucide-react';
+import { BASE_URL } from '../../config';
+import axios from 'axios';
 
 const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
   const initialFormData = {
@@ -108,38 +110,52 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
       reader.readAsDataURL(file);
     }
   };
-
   // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validate form
-    const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const newErrors = validateForm();
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
+
+  try {
+    const formToSend = new FormData();
+    formToSend.append('name', formData.name);
+    formToSend.append('description', formData.description);
+    formToSend.append('price', formData.price);
+    formToSend.append('discount', formData.discount);
+    formToSend.append('category', formData.category);
+    formToSend.append('occasion', formData.occasion);
+    formToSend.append('stock', formData.stock);
+
+    // Nếu người dùng nhập URL ảnh thủ công
+    if (formData.imageUrl && !imageFile) {
+      formToSend.append('imageUrl', formData.imageUrl);
     }
-    
-    // Create FormData for multipart/form-data
-    const formDataToSubmit = new FormData();
-    
-    // Append text fields
-    Object.keys(formData).forEach(key => {
-      // Only append non-null values
-      if (formData[key] !== null && formData[key] !== undefined) {
-        formDataToSubmit.append(key, formData[key]);
-      }
-    });
-    
-    // Append image file if exists
+
+    // Nếu người dùng chọn ảnh file
     if (imageFile) {
-      formDataToSubmit.append('image', imageFile);
+      formToSend.append('image', imageFile);
     }
-    
-    // Call onSave function from parent component
-    onSave(formDataToSubmit);
-  };
+
+    // Nếu là cập nhật, thêm ID
+    if (formData.id) {
+      formToSend.append('id', formData.id);
+    }
+
+    // Gọi hàm onSave, truyền FormData
+    await onSave(formToSend);
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    setErrors({
+      ...errors,
+      submit: 'Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.'
+    });
+  }
+};
+
 
   // If the modal is not open, don't render anything
   if (!isOpen) return null;
