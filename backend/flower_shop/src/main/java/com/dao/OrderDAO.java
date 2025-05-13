@@ -151,12 +151,12 @@ public class OrderDAO extends DatabaseConnection {
         }
     }
 
-    public List<Order> getOrdersByUserId(int userId) {
+    public List<Order> getOrdersByUserId(String userId) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT * FROM `order` WHERE userId = ? ORDER BY orderDate DESC";
 
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
-            statement.setInt(1, userId);
+            statement.setString(1, userId);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {

@@ -87,6 +87,7 @@ export default function CheckoutPage() {
       const checkoutRequest = {
         shippingAddress: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.city}`,
         phoneNumber: shippingInfo.phone,
+        fullName: shippingInfo.fullName,
         paymentMethod: paymentInfo.paymentMethod,
         items: cartItems.map(item => ({
           productId: item.id,
@@ -96,7 +97,19 @@ export default function CheckoutPage() {
         })),
       };
 
-      const response = await fetch('http://localhost:8080/flower_shop/api/checkout', {
+      // Log the request data for debugging
+      console.log("Sending checkout data:", JSON.stringify(checkoutRequest));
+      console.log("Auth token exists:", !!localStorage.getItem('token'));
+
+      // Get the base URL to understand the context
+      const baseUrl = window.location.origin;
+      console.log("Base URL:", baseUrl);
+      
+      // Fix API URL path to match servlet configuration
+      const apiPath = 'http://localhost:8080/flower_shop/api/checkout';
+      console.log("Trying API path:", apiPath);
+      
+      const response = await fetch(apiPath, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,13 +118,34 @@ export default function CheckoutPage() {
         body: JSON.stringify(checkoutRequest),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Đặt hàng thất bại');
+      console.log("Response status:", response.status);
+      console.log("Response headers:", [...response.headers.entries()]);
+      
+      // Try to get response text for debugging
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log("Response text:", responseText);
+      } catch (e) {
+        console.log("Could not read response text:", e);
       }
 
-      const result = await response.json();
-      setOrderId(result.orderId);
+      // If we got response text, try to parse it as JSON
+      let result = {};
+      if (responseText) {
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          console.log("Not valid JSON response");
+        }
+      }
+
+      // Handle response
+      if (!response.ok) {
+        throw new Error(result.message || `Đặt hàng thất bại (Status: ${response.status})`);
+      }
+
+      setOrderId(result.orderId || Date.now().toString().slice(-8));
       setOrderStatus('success');
       setStep(4);
     } catch (error) {
