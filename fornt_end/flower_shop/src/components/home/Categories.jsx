@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BASE_URL } from '../../config';
 
 function Categories() {
   const categories = [
-    { id: 1, name: "Hoa tươi", imageUrl: "/api/placeholder/200/200", slug: "hoa-tuoi" },
-    { id: 2, name: "Hoa chậu", imageUrl: "/api/placeholder/200/200", slug: "hoa-chau" },
-    { id: 3, name: "Hoa cưới", imageUrl: "/api/placeholder/200/200", slug: "hoa-cuoi" },
-    { id: 4, name: "Hoa sự kiện", imageUrl: "/api/placeholder/200/200", slug: "hoa-su-kien" },
-    { id: 5, name: "Quà tặng kèm", imageUrl: "/api/placeholder/200/200", slug: "qua-tang-kem" }
+    { id: 1, name: "Hoa tươi", imageUrl: "/images/categori_hoatuoi.jpg", slug: "hoa-tuoi" },
+    { id: 2, name: "Hoa chậu", imageUrl: "/images/categori_hoachau.jpg", slug: "hoa-chau" },
+    { id: 3, name: "Hoa cưới", imageUrl: "/images/categori_hoacuoi.jpg", slug: "hoa-cuoi" },
+    { id: 4, name: "Hoa sự kiện", imageUrl: "/images/categori_hoasukien.jpg", slug: "hoa-su-kien" },
+    { id: 5, name: "Quà tặng kèm", imageUrl: "/images/categori_quatangkem.jpg", slug: "qua-tang-kem" }
   ];
   
   return (
@@ -21,7 +22,7 @@ function Categories() {
               to={`/category/${category.slug}`} 
               className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105"
             >
-              <img src={category.imageUrl} alt={category.name} className="w-full h-40 object-cover" />
+              <img src={`${BASE_URL}${category.imageUrl}`} alt={category.name} className="w-full h-40 object-cover" />
               <div className="p-4 text-center">
                 <h3 className="font-medium text-gray-800">{category.name}</h3>
               </div>

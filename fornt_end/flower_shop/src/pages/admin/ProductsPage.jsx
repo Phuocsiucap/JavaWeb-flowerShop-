@@ -1,6 +1,7 @@
 // src/pages/admin/ProductsPage.jsx
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+import AppLayout from "../../components/admin/Layout";
 
 import {
   Search,
@@ -137,18 +138,27 @@ const ProductsPage = () => {
       }
 
       const token = localStorage.getItem("token");
-      
+
+      // ⚠️ Tạo FormData vì có ảnh (imageUrl là File)
+      const formData = new FormData();
+      for (const key in productData) {
+        if (key === "imageUrl" && productData.imageUrl instanceof File) {
+          formData.append("image", productData.imageUrl); // đổi tên thành "image" (khớp với tên trong backend)
+        } else {
+          formData.append(key, productData[key]);
+        }
+      }
+
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // ✅ Gửi kèm token
+          Authorization: `Bearer ${token}`, // ✅ Không cần Content-Type nếu dùng FormData
         },
-        body: JSON.stringify(productData),
+        body: formData,
       });
 
       if (!response.ok) {
-        const text = await response.text(); // thêm để debug
+        const text = await response.text(); // xem lỗi trả về
         console.error("Lỗi server:", text);
         throw new Error("Failed to save product");
       }
@@ -246,6 +256,7 @@ const ProductsPage = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
+    <AppLayout>
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
@@ -517,19 +528,13 @@ const ProductsPage = () => {
                     Trước
                   </button>
 
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    // Show only 5 page numbers at a time
-                    const pageToShow =
-                      currentPage > 3
-                        ? i + currentPage - 2 <= totalPages
-                          ? i + currentPage - 2
-                          : totalPages - 4 + i
-                        : i + 1;
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageToShow = i + 1; // Dễ hiểu hơn khi lấy trực tiếp chỉ số trang
 
-                    if (pageToShow > 0 && pageToShow <= totalPages) {
+                    if (pageToShow <= totalPages) {
                       return (
                         <button
-                          key={pageToShow}
+                          key={pageToShow} // Dùng trực tiếp pageToShow làm key để đảm bảo duy nhất
                           className={`px-3 py-1 border rounded ${
                             currentPage === pageToShow
                               ? "bg-blue-50 text-blue-600"
@@ -602,6 +607,7 @@ const ProductsPage = () => {
         />
       )}
     </div>
+    </AppLayout>
   );
 };
 

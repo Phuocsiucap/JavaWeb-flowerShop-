@@ -6,7 +6,7 @@ const UserFilters = ({
   searchTerm, 
   setSearchTerm, 
   roleFilter, 
-  setroleFilter, 
+  setRoleFilter, 
   statusFilter, 
   setStatusFilter 
 }) => {
@@ -30,7 +30,7 @@ const UserFilters = ({
       <select
         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-500 focus:border-pink-500 block p-2.5"
         value={roleFilter}
-        onChange={(e) => setroleFilter(e.target.value)}
+        onChange={(e) => setRoleFilter(e.target.value)}
       >
         <option value="all">Tất cả loại người dùng</option>
         <option value="admin">Quản trị viên</option>

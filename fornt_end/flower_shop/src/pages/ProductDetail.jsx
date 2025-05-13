@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Minus, Plus, ArrowLeft } from 'lucide-react';
+import { BASE_URL } from '../config'
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
 import Header from '../components/layout/Header';
@@ -108,7 +109,7 @@ const ProductDetail = () => {
   const discountedPrice = product.price * (1 - (product.discount || 0) / 100);
 
   return (
-    <>
+    <div>
     <Header />
     <div className="container mx-auto px-4 py-8">
       {/* Back Button */}
@@ -125,7 +126,7 @@ const ProductDetail = () => {
           <div className="md:w-1/2 p-6">
             <div className="relative">
               <img 
-                src={product.imageUrl || '/placeholder.jpg'} 
+                src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-auto object-cover rounded-lg"
               />
@@ -232,7 +233,7 @@ const ProductDetail = () => {
     <Footer />
     <ScrollToTop />
 
-    </>
+    </div>
 
   );
 };

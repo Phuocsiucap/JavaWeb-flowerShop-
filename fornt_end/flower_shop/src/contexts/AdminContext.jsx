@@ -5,22 +5,48 @@ import Cookies from 'js-cookie';
 const AdminContext = createContext();
 
 export const AdminProvider = ({ children }) => {
+  const [userinfo, setUserinfo] = useState(null);
   const [adminToken, setAdminToken] = useState(Cookies.get('adminToken') || null);
 
-  const verifyTokenAdmin = async () => {
-    if (!adminToken) return false;
-    return true;
+  const verifyTokenAdmin = async (adminToken) => {
+    if (adminToken !== null ) adminToken= Cookies.get('adminToken');
+    if (adminToken) {
+      const res = await axios.get('/api/auth/me', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      }
+     
+      );
+    
+      console.log(res.data);
+      
+      if(res.data.role === "customer") {
+        Cookies.remove('adminToken');
+        return false;
+      }
+      return true;
+    }
+    return false;
   };
 
   const loginAdmin = async (email, password) => {
     if (email && password) {
       try {
         const res = await axios.post('/api/auth/login', { email, password });
+        console.log(email, password);
         const data = res.data;
         console.log(data);
         const token = data.data.token;
+
+        const isValid = await verifyTokenAdmin(token);
+        if (!isValid) {
+          console.log("Token is valid");
+          return false;
+        }
+        
+        console.log("data", data);
         setAdminToken(token);
         Cookies.set('adminToken', token);
+        
         return true;
       } catch (error) {
         console.error("Login error:", error);
@@ -62,6 +88,7 @@ export const AdminProvider = ({ children }) => {
   };
   const createUser = async (userData) => {
     try {
+
       const res = await axios.post('api/admin/management/users', {
         name: userData.fullName,
         email: userData.email,
@@ -136,6 +163,7 @@ export const AdminProvider = ({ children }) => {
 
   const value = {
     adminToken,
+    userinfo,
     verifyTokenAdmin,
     loginAdmin,
     logoutAdmin,

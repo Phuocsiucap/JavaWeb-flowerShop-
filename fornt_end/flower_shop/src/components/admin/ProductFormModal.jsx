@@ -1,14 +1,13 @@
 // src/components/admin/ProductFormModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Link } from 'lucide-react';
+import { X, Link, Upload } from 'lucide-react';
 
 const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
   const initialFormData = {
-    // Removed id field as it's automatically generated
     name: '',
     description: '',
     price: 0,
-    imageUrl: '',
+    imageUrl: null, 
     discount: 0,
     category: '',
     occasion: '',
@@ -23,12 +22,11 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
   useEffect(() => {
     if (product) {
       setFormData({
-        // Keep id for existing products (for updating), but don't show in form
-        ...(product.id ? { id: product.id } : {undefined}),
+        ...(product.id ? { id: product.id } : {}),
         name: product.name || '',
         description: product.description || '',
         price: product.price || 0,
-        imageUrl: product.imageUrl || '',
+        imageUrl: product.imageUrl || null, 
         discount: product.discount || 0,
         category: product.category || '',
         occasion: product.occasion || '',
@@ -36,15 +34,34 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
       });
       
       if (product.imageUrl) {
-        setImagePreview(product.imageUrl);
+        // If product has an existing image, set preview
+        setImagePreview(typeof product.imageUrl === 'string' 
+          ? product.imageUrl 
+          : URL.createObjectURL(product.imageUrl));
       }
     }
   }, [product]);
 
   // Handle form input changes
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value, type, files } = e.target;
     let processedValue = value;
+    
+    // Handle file upload
+    if (type === 'file') {
+      const file = files[0];
+      if (file) {
+        // Create preview
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+        
+        setFormData({
+          ...formData,
+          imageUrl: file
+        });
+      }
+      return;
+    }
     
     // Convert numeric strings to numbers
     if (type === 'number') {
@@ -62,11 +79,6 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
         ...errors,
         [name]: ''
       });
-    }
-
-    // Handle image URL preview
-    if (name === 'imageUrl' && value) {
-      setImagePreview(value);
     }
   };
 
@@ -111,7 +123,13 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
     
     // Call onSave function from parent component
     onSave(formData);
-    console.log(formData) 
+  };
+
+  // Clean up preview URL to prevent memory leaks
+  const cleanupPreview = () => {
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
   };
 
   // If the modal is not open, don't render anything
@@ -125,7 +143,10 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
             {product ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
           </h2>
           <button 
-            onClick={onClose}
+            onClick={() => {
+              cleanupPreview();
+              onClose();
+            }}
             className="p-1 rounded-full hover:bg-gray-100"
           >
             <X size={20} />
@@ -264,53 +285,25 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
               {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
             </div>
 
-            {/* Image URL Input */}
+            {/* Image Upload */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Hình ảnh sản phẩm
               </label>
-              <div className="flex flex-col md:flex-row md:space-x-4">
-                <div className="flex-1">
-                  <div className="flex flex-col space-y-2">
+              <div className="flex flex-col md:flex-row md:space-x-4 items-center">
+                <div className="flex-1 w-full">
+                  <div className="flex items-center border rounded-md overflow-hidden">
+                    <span className="bg-gray-100 px-3 py-2 text-gray-500 border-r">
+                      <Upload size={18} />
+                    </span>
                     <input
                       type="file"
+                      name="imageUrl"
+                      onChange={handleChange}
                       accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setImagePreview(reader.result);
-                            setFormData({ ...formData, imageUrl: reader.result });
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-md file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
+                      className="flex-1 p-2 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
-                    <div className="text-sm text-gray-500">
-                      hoặc
-                    </div>
-                    <div className="flex items-center border rounded-md overflow-hidden">
-                      <span className="bg-gray-100 px-3 py-2 text-gray-500 border-r">
-                        <Link size={18} />
-                      </span>
-                      <input
-                        type="text"
-                        name="imageUrl"
-                        value={formData.imageUrl}
-                        onChange={handleChange}
-                        className="flex-1 p-2 outline-none"
-                        placeholder="Nhập đường dẫn URL hình ảnh"
-                      />
-                    </div>
                   </div>
-                  {errors.imageUrl && <p className="text-red-500 text-xs mt-1">{errors.imageUrl}</p>}
                 </div>
 
                 {/* Image preview */}
@@ -322,15 +315,16 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
                       className="h-full w-full object-cover"
                       onError={(e) => {
                         e.target.src = "/api/placeholder/96/96";
-                        setErrors({...errors, imageUrl: 'Không thể tải hình ảnh. Kiểm tra lại.'});
+                        setErrors({...errors, imageUrl: 'Không thể tải hình ảnh. Kiểm tra lại tệp.'});
                       }}
                     />
                     <button
                       type="button"
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 h-6 w-6 flex items-center justify-center"
                       onClick={() => {
+                        cleanupPreview();
                         setImagePreview('');
-                        setFormData({ ...formData, imageUrl: '' });
+                        setFormData({ ...formData, imageUrl: null });
                       }}
                     >
                       <X size={14} />
@@ -343,7 +337,10 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product, categories }) => {
             <div className="col-span-2 flex justify-end space-x-3 mt-6">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  cleanupPreview();
+                  onClose();
+                }}
                 className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Hủy

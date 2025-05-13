@@ -2,8 +2,7 @@ import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { CartContext } from '../../contexts/CartContext'; 
-
-import Cookies from 'js-cookie';
+import { BASE_URL } from '../../config';
 
 function ProductCard({ product, toggleWishlist }) {
   const {addToCart} = useContext(CartContext);
@@ -21,11 +20,13 @@ function ProductCard({ product, toggleWishlist }) {
     };
 
   return (
+    
     <div className="bg-white rounded border overflow-hidden hover:shadow-lg transition-shadow">
+       <Link to={`/products/${product.id}`}>
       {/* Product Image */}
       <div className="relative">
         <img
-          src={product.imageUrl || '/placeholder.jpg'}
+          src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
           alt={product.name}
           className="w-full h-64 object-cover"
         />
@@ -44,15 +45,17 @@ function ProductCard({ product, toggleWishlist }) {
           />
         </button>
       </div>
+      </Link>
 
       {/* Product Info */}
       <div className="p-4">
+         <Link to={`/products/${product.id}`}>
         <div className="text-sm text-gray-500 mb-1">{product.category}</div>
-        <Link to={`/products/${product.id}`}>
+        
           <h3 className="font-medium text-lg mb-2 hover:text-pink-500 cursor-pointer">
             {product.name}
           </h3>
-        </Link>
+        
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
         <div className="flex justify-between items-center mb-2">
           <div>
@@ -69,6 +72,7 @@ function ProductCard({ product, toggleWishlist }) {
             {product.stock > 0 ? `Còn ${product.stock}` : 'Hết hàng'}
           </span>
         </div>
+        </Link>
         <button
           className={`w-full p-2 rounded-lg text-white flex items-center justify-center ${
             product.stock > 0 ? 'bg-pink-500 hover:bg-pink-600' : 'bg-gray-400 cursor-not-allowed'
@@ -81,6 +85,7 @@ function ProductCard({ product, toggleWishlist }) {
         </button>
       </div>
     </div>
+     
   );
 }
 

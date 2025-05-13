@@ -1,6 +1,8 @@
 import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthContext } from "../contexts/AuthContext";  // Import AuthContext
+import { AuthContext } from "../contexts/AuthContext";  
+import Header from "../components/layout/Header";
+
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -30,7 +32,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-top px-4"
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow">
+        <div className="min-h-screen flex items-center justify-center bg-cover bg-top px-4"
       style={{ backgroundImage: 'url("login_image.png")' }}
     >
 
@@ -94,6 +99,11 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+      </main>
+     
+   
+    </div>
+    
   );
 };
 

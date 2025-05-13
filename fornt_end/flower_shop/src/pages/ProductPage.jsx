@@ -165,7 +165,7 @@ const ProductPage = () => {
   }
 
   return (
-    <>
+    <div>
       <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -295,7 +295,7 @@ const ProductPage = () => {
       </div>
       <Footer />
       <ScrollToTop />
-    </>
+    </div>
   );
 };
 
