@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search, Filter, ArrowUpDown, Eye, Download } from 'lucide-react';
 import AdminLayout from '../../components/admin/Layout';
+import Cookies from 'js-cookie';
 
 const OrdersPage = () => {
   const [selectedTab, setSelectedTab] = useState('all');
@@ -12,7 +13,7 @@ const OrdersPage = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const token = localStorage.getItem('token');
+      const token = Cookies.get('token');
       try {
         const response = await axios.get(`http://localhost:8080/flower_shop/api/orders`, {
           headers: {

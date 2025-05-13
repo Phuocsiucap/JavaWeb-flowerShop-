@@ -24,7 +24,7 @@ public class OrderDAO extends DatabaseConnection {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            String sqlOrder = "INSERT INTO `order` (userId, orderDate, totalAmount, status, paymentMethod, shippingAddress, phoneNumber) " +
+            String sqlOrder = "INSERT INTO orders (userId, orderDate, totalAmount, status, paymentMethod, shippingAddress, phoneNumber) " +
                     "VALUES (?, NOW(), ?, ?, ?, ?, ?)";
             psOrder = conn.prepareStatement(sqlOrder, Statement.RETURN_GENERATED_KEYS);
             psOrder.setString(1, order.getUserId());
@@ -49,7 +49,7 @@ public class OrderDAO extends DatabaseConnection {
             int orderId = rs.getInt(1);
             order.setOrderId(orderId);
 
-            String sqlItem = "INSERT INTO order_item (orderId, productId, quantity, price) VALUES (?, ?, ?, ?)";
+            String sqlItem = "INSERT INTO orderitem (orderId, productId, quantity, price) VALUES (?, ?, ?, ?)";
             psItem = conn.prepareStatement(sqlItem);
 
             for (OrderItem item : order.getItems()) {
@@ -76,8 +76,8 @@ public class OrderDAO extends DatabaseConnection {
     }
 
     public boolean deleteOrder(int orderId) {
-        String sqlDeleteItems = "DELETE FROM order_item WHERE orderId = ?";
-        String sqlDeleteOrder = "DELETE FROM `order` WHERE orderId = ?";
+        String sqlDeleteItems = "DELETE FROM orderitem WHERE orderId = ?";
+        String sqlDeleteOrder = "DELETE FROM orders WHERE orderId = ?";
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             conn.setAutoCommit(false);
@@ -105,7 +105,7 @@ public class OrderDAO extends DatabaseConnection {
     }
 
     public Order getOrderById(int orderId) {
-        String sql = "SELECT * FROM `order` WHERE orderId = ?";
+        String sql = "SELECT * FROM orders WHERE orderId = ?";
 
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setInt(1, orderId);
@@ -137,7 +137,7 @@ public class OrderDAO extends DatabaseConnection {
     }
 
     public boolean updateOrderStatus(int orderId, String status) {
-        String sql = "UPDATE `order` SET status = ? WHERE orderId = ?";
+        String sql = "UPDATE orders SET status = ? WHERE orderId = ?";
 
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setString(1, status);
@@ -153,7 +153,7 @@ public class OrderDAO extends DatabaseConnection {
 
     public List<Order> getOrdersByUserId(String userId) {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM `order` WHERE userId = ? ORDER BY orderDate DESC";
+        String sql = "SELECT * FROM orders WHERE userId = ? ORDER BY orderDate DESC";
 
         try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
             statement.setString(1, userId);

@@ -32,13 +32,17 @@ const Cart = () => {
 
   // Hàm xử lý chuyển hướng đến trang thanh toán với các item đã chọn
   const handleCheckout = () => {
-    if (selectedItems.length === 0) {
-      alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
-      return;
-    }
-    const checkoutItems = cartItems.filter(item => selectedItems.includes(item.productId));
-    navigate('/checkout', { state: { items: checkoutItems } });
-  };
+  if (selectedItems.length === 0) {
+    alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
+    return;
+  }
+
+  const checkoutItems = cartItems.filter(item => selectedItems.includes(item.productId));
+  
+  localStorage.setItem('checkoutItems',checkoutItems);
+  navigate('/checkout');
+};
+
 
   if (cartItems.length === 0) {
     return (

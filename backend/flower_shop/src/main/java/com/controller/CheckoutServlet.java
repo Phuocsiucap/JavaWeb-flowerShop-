@@ -2,8 +2,11 @@ package com.controller;
 
 import com.dao.OrderDAO;
 import com.dao.ProductDAO;
-import com.dao.ProductDAOImpl;
 import com.dao.UserDao;
+import com.dto.request.CheckoutRequest;
+import com.dto.response.SuccessResponse;
+import com.dto.response.ApiResponse;
+import com.dao.ProductDAOImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.model.Order;
 import com.model.OrderItem;
@@ -30,29 +33,26 @@ public class CheckoutServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
         try {
             // Xác thực token từ header
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Thiếu token");
+                sendErrorResponse(response, "Thiếu token", HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
 
             String token = authHeader.substring(7);
             Optional<User> userOpt = authService.getUserFromToken(token);
             if (!userOpt.isPresent()) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ");
+                sendErrorResponse(response, "Token không hợp lệ", HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
 
             User user = userOpt.get();
-            CheckoutRequest checkout = objectMapper.readValue(request.getReader(), CheckoutRequest.class);
 
+            CheckoutRequest checkout = objectMapper.readValue(request.getReader(), CheckoutRequest.class);
             if (checkout.items == null || checkout.items.isEmpty()) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Giỏ hàng trống");
+                sendErrorResponse(response, "Giỏ hàng trống", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
@@ -71,10 +71,10 @@ public class CheckoutServlet extends HttpServlet {
             order.setStatus("Pending");
             order.setItems(checkout.items);
 
-            // Giao dịch lưu đơn hàng
-            int orderId = orderDAO.createOrderWithItems(order); // Đảm bảo DAO này dùng transaction
+            // Lưu đơn hàng
+            int orderId = orderDAO.createOrderWithItems(order);
             if (orderId <= 0) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Tạo đơn hàng thất bại");
+                sendErrorResponse(response, "Tạo đơn hàng thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
 
@@ -82,34 +82,39 @@ public class CheckoutServlet extends HttpServlet {
             for (OrderItem item : checkout.items) {
                 boolean success = productDAO.decreaseStock(item.getProductId(), item.getQuantity());
                 if (!success) {
-                    orderDAO.deleteOrder(orderId); // rollback nếu thiếu kho
-                    response.sendError(HttpServletResponse.SC_CONFLICT,
-                            "Sản phẩm '" + item.getProductName() + "' không đủ hàng");
+                    orderDAO.deleteOrder(orderId);
+                    sendErrorResponse(response,
+                            "Sản phẩm '" + item.getProductName() + "' không đủ hàng",
+                            HttpServletResponse.SC_CONFLICT);
                     return;
                 }
             }
 
-            objectMapper.writeValue(response.getWriter(), new SuccessResponse("Đặt hàng thành công", orderId));
+            sendJsonResponse(response, new SuccessResponse("Đặt hàng thành công", orderId));
 
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi: " + e.getMessage());
+            sendErrorResponse(response, "Lỗi: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    private static class CheckoutRequest {
-        public String shippingAddress;
-        public String phoneNumber;
-        public String paymentMethod;
-        public List<OrderItem> items;
+    // Helper method to send success JSON response
+    private void sendJsonResponse(HttpServletResponse response, Object data) throws IOException {
+        sendJsonResponse(response, data, HttpServletResponse.SC_OK);
     }
 
-    private static class SuccessResponse {
-        public String message;
-        public int orderId;
+    private void sendJsonResponse(HttpServletResponse response, Object data, int status) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setStatus(status);
+        objectMapper.writeValue(response.getOutputStream(), data);
+    }
 
-        public SuccessResponse(String message, int orderId) {
-            this.message = message;
-            this.orderId = orderId;
-        }
+    // Helper method to send standardized error response
+    private void sendErrorResponse(HttpServletResponse response, String message, int status) throws IOException {
+        ApiResponse errorResponse = ApiResponse.builder()
+                .success(false)
+                .message(message)
+                .build();
+        sendJsonResponse(response, errorResponse, status);
     }
 }

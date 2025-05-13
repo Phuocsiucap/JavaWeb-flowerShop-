@@ -89,7 +89,7 @@ const removeFromCart = async (productId) => {
   const token = Cookies.get('token');
   try {
     if (!token) throw new Error('Vui lòng đăng nhập để xóa sản phẩm');
-
+    
     const response = await fetch(`http://localhost:8080/flower_shop/api/cart/remove/${productId}`, {
       method: 'DELETE',
       headers: {

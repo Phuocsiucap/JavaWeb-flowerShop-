@@ -137,7 +137,7 @@ const ProductsPage = () => {
         method = "PUT";
       }
 
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("token");
 
       // ⚠️ Tạo FormData vì có ảnh (imageUrl là File)
       const formData = new FormData();
