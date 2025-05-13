@@ -13,7 +13,7 @@ const OrdersPage = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const token = Cookies.get('token');
+      const token = Cookies.get('adminToken');
       try {
         const response = await axios.get(`http://localhost:8080/flower_shop/api/orders`, {
           headers: {

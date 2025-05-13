@@ -11,8 +11,9 @@ import axios from '../axiosInstance';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 
+
 export default function CheckoutPage() {
-  const { cartItems, totalPrice, removeFromCart } = useCart();
+  const { totalPrice, removeFromCart } = useCart();
   const [paymentInfo, setPaymentInfo] = useState({
     cardNumber: '',
     cardHolder: '',
@@ -33,14 +34,15 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState(null);
   const navigate = useNavigate();
 
-  // const location = useLocation();
+  const location = useLocation();
   // const selectedItems = location.state?.items || cartItems; // Ưu tiên items từ location nếu có
-  const selectedItems = localStorage.getItem('checkoutItems');
+  const selectedItems = location.state?.items || [];
+  console.log('selectedItems', selectedItems);
 
-  const totalAmount = selectedItems.reduce(
-    (total, item) => total + item.price * item.quantity,
+  // const totalAmount = selectedItems.reduce(
+  //   (total, item) => total + item.price * item.quantity,
     
-  );
+  // );
 
   const handleShippingChange = (e) => {
     const { name, value } = e.target;
@@ -526,7 +528,7 @@ export default function CheckoutPage() {
               Tóm tắt đơn hàng
             </h2>
             <div className="space-y-4 mb-6">
-              {cartItems.map((item) => (
+              {selectedItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
                     <img
