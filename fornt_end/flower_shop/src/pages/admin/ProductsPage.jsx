@@ -127,31 +127,39 @@ const ProductsPage = () => {
   };
 
   // Handle product save (create or update)
-  const handleSaveProduct = async (formData) => {
+  const handleSaveProduct = async (productData) => {
     try {
       console.log("Form data:", formData);
       let url = "http://localhost:8080/flower_shop/products/";
       let method = "POST";
 
-      // If editing an existing product, update the URL and method
-      if (formData.get('id')) {
-        url += formData.get('id');
+      if (productData.id) {
+        url += productData.id;
         method = "PUT";
       }
 
       const token = localStorage.getItem("token");
-      
+
+      // ⚠️ Tạo FormData vì có ảnh (imageUrl là File)
+      const formData = new FormData();
+      for (const key in productData) {
+        if (key === "imageUrl" && productData.imageUrl instanceof File) {
+          formData.append("image", productData.imageUrl); // đổi tên thành "image" (khớp với tên trong backend)
+        } else {
+          formData.append(key, productData[key]);
+        }
+      }
+
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: {
-          // No need to set Content-Type, browser will set it automatically for FormData
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`, // ✅ Không cần Content-Type nếu dùng FormData
         },
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
-        const text = await response.text(); // thêm để debug
+        const text = await response.text(); // xem lỗi trả về
         console.error("Lỗi server:", text);
         throw new Error("Failed to save product");
       }
@@ -160,7 +168,7 @@ const ProductsPage = () => {
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
       toast.success(
-        formData.get('id')
+        productData.id
           ? "Sản phẩm đã được cập nhật thành công"
           : "Sản phẩm đã được thêm thành công"
       );
@@ -413,7 +421,6 @@ const ProductsPage = () => {
                           onChange={() => toggleSelectProduct(product.id)}
                         />
                       </td>
-                     
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 rounded-md bg-gray-200 flex-shrink-0 overflow-hidden">
@@ -522,19 +529,13 @@ const ProductsPage = () => {
                     Trước
                   </button>
 
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    // Show only 5 page numbers at a time
-                    const pageToShow =
-                      currentPage > 3
-                        ? i + currentPage - 2 <= totalPages
-                          ? i + currentPage - 2
-                          : totalPages - 4 + i
-                        : i + 1;
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageToShow = i + 1; // Dễ hiểu hơn khi lấy trực tiếp chỉ số trang
 
-                    if (pageToShow > 0 && pageToShow <= totalPages) {
+                    if (pageToShow <= totalPages) {
                       return (
                         <button
-                          key={pageToShow}
+                          key={pageToShow} // Dùng trực tiếp pageToShow làm key để đảm bảo duy nhất
                           className={`px-3 py-1 border rounded ${
                             currentPage === pageToShow
                               ? "bg-blue-50 text-blue-600"

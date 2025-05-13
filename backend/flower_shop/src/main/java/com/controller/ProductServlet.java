@@ -2,6 +2,8 @@ package com.controller;
 
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.dao.ProductDAO;
 import com.dao.ProductDAOImpl;
 import com.dto.request.RegisterRequest;
@@ -12,9 +14,12 @@ import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 
 @WebServlet("/products/*")
@@ -28,19 +33,43 @@ public class ProductServlet extends HttpServlet {
     private final Gson gson = new Gson();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private String saveImage(Part filePart) throws IOException {
+    // Upload image to ImgBB and return image URL
+    private String uploadToImgBB(Part filePart) throws IOException {
+        String apiKey = "05a48fa961229de8126fbb5798d949fc"; 
+
         if (filePart == null || filePart.getSize() == 0) return null;
 
-        String imageDir = "E:\\JavaWeb-flowerShop-\\JavaWeb-flowerShop-\\backend\\flower_shop\\images";
-        File dir = new File(imageDir);
-        if (!dir.exists()) dir.mkdirs();
+        InputStream inputStream = filePart.getInputStream();
+        byte[] imageBytes = inputStream.readAllBytes();
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-        String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
-        String savedPath = imageDir + File.separator + fileName;
-        filePart.write(savedPath);
+        String url = "https://api.imgbb.com/1/upload?key=" + apiKey;
+        String payload = "image=" + URLEncoder.encode(base64Image, "UTF-8");
 
-        // Trả về đường dẫn URL tương đối để client truy cập được
-        return "/images/" + fileName;
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+        try (OutputStream os = connection.getOutputStream()) {
+            os.write(payload.getBytes());
+        }
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            StringBuilder responseBuilder = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    responseBuilder.append(line);
+                }
+            }
+
+            JsonObject json = JsonParser.parseString(responseBuilder.toString()).getAsJsonObject();
+            return json.getAsJsonObject("data").get("url").getAsString();
+        }
+
+        return null;
     }
 
     @Override
@@ -76,14 +105,24 @@ public class ProductServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         try {
-//            String name = request.getParameter("name");
-//            double price = Double.parseDouble(request.getParameter("price"));
-//            String description = request.getParameter("description");
-//            
-            String imageUrl = saveImage(request.getPart("image"));
+            String name = request.getParameter("name");
+            double price = Double.parseDouble(request.getParameter("price"));
+            float discount = Float.parseFloat(request.getParameter("discount"));
+            String description = request.getParameter("description");
+            String category = request.getParameter("category");
+            String occasion = request.getParameter("occasion");
+            int stock = Integer.parseInt(request.getParameter("stock"));
 
+            String imageUrl = uploadToImgBB(request.getPart("image"));
 
-            Product product = objectMapper.readValue(request.getInputStream(), Product.class);
+            Product product = new Product();
+            product.setName(name);
+            product.setPrice(price);
+            product.setDiscount(discount);
+            product.setDescription(description);
+            product.setCategory(category);
+            product.setOccasion(occasion);
+            product.setStock(stock);
             product.setImageUrl(imageUrl);
 //            product.setName(name);
 //            product.setPrice(price);
@@ -119,12 +158,16 @@ public class ProductServlet extends HttpServlet {
                 response.getWriter().write("{\"error\": \"Không tìm thấy sản phẩm\"}");
                 return;
             }
-            Product product = objectMapper.readValue(request.getInputStream(), Product.class);
-//            String name = request.getParameter("name");
-//            double price = Double.parseDouble(request.getParameter("price"));
-//            String description = request.getParameter("description");
-//
-            String imageUrl = saveImage(request.getPart("image"));
+
+            String name = request.getParameter("name");
+            double price = Double.parseDouble(request.getParameter("price"));
+            float discount = Float.parseFloat(request.getParameter("discount"));
+            String description = request.getParameter("description");
+            String category = request.getParameter("category");
+            String occasion = request.getParameter("occasion");
+            int stock = Integer.parseInt(request.getParameter("stock"));
+
+            String imageUrl = uploadToImgBB(request.getPart("image"));
             if (imageUrl == null) imageUrl = existingProduct.getImageUrl();
             else product.setImageUrl(imageUrl);
 //
@@ -133,8 +176,16 @@ public class ProductServlet extends HttpServlet {
 //            existingProduct.setDescription(description);
 //            existingProduct.setImageUrl(imageUrl);
 
-//            boolean success = productDAO.updateProduct(existingProduct);
-            boolean success = productDAO.updateProduct(existingProduct, product);
+            existingProduct.setName(name);
+            existingProduct.setPrice(price);
+            existingProduct.setDiscount(discount);
+            existingProduct.setDescription(description);
+            existingProduct.setCategory(category);
+            existingProduct.setOccasion(occasion);
+            existingProduct.setStock(stock);
+            existingProduct.setImageUrl(imageUrl);
+
+            boolean success = productDAO.updateProduct(existingProduct);
             if (success) {
                 response.getWriter().write("{\"message\": \"Cập nhật sản phẩm thành công\"}");
             } else {
