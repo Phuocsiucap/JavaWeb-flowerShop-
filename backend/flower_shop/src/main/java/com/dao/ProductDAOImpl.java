@@ -119,6 +119,24 @@ public class ProductDAOImpl implements ProductDAO {
 
         return false;
     }
+    public boolean decreaseStock(int productId, int quantity) {
+        String sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, quantity);
+            stmt.setInt(2, productId);
+            stmt.setInt(3, quantity);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     @Override
     public boolean deleteProduct(int id) {

@@ -2,6 +2,7 @@ package com.controller;
 
 import com.dao.OrderDAO;
 import com.dao.ProductDAO;
+import com.dao.ProductDAOImpl;
 import com.dao.UserDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.model.Order;
@@ -22,7 +23,7 @@ public class CheckoutServlet extends HttpServlet {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderDAO orderDAO = new OrderDAO();
-    private final ProductDAO productDAO = new ProductDAO();
+    private final ProductDAO productDAO = new ProductDAOImpl();
     private final AuthService authService = new AuthServiceImpl(new UserDao());
 
     @Override
