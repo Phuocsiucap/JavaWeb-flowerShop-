@@ -16,9 +16,9 @@ function HomePage() {
       <Header />
       <main className="flex-grow">
         <Banner />
-        <Categories />
+{/*         <Categories /> */}
         <FeaturedProducts />
-        <Occasions />
+{/*         <Occasions /> */}
         <Testimonials />
         <Features />
         <Newsletter />
