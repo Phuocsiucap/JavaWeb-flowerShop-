@@ -95,6 +95,18 @@ export const AuthProvider = ({ children }) => {
           return [];
         }
       };
+
+    const getOrderItems = async (token,orderId) => {
+        try {
+          const res = await axios.get(`/api/orders/items/${orderId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return res.data.data.items; // trả về đúng mảng orders từ API
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+          return [];
+        }
+      };
   
 
   const value = {
@@ -105,7 +117,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     forgotPassword,
     updateUserProfile,
-    getDetailOrder
+    getDetailOrder,
+    getOrderItems
   };
 
   return (

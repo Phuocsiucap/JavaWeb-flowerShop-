@@ -54,32 +54,26 @@ const HomeAdmin = () => {
       title: "Báo cáo doanh thu", 
       description: "Thống kê doanh thu bán hàng",
       icon: <DollarSign className="h-8 w-8 text-yellow-500" />,
-      link: "/admin/revenue"
+      link: "/admin/reports"
     },
-    { 
-      title: "Quản lý kho", 
-      description: "Kiểm soát tồn kho và nguyên liệu",
-      icon: <Package className="h-8 w-8 text-orange-500" />,
-      link: "/admin/inventory"
-    },
-    { 
-      title: "Lịch giao hàng", 
-      description: "Quản lý lịch trình giao hoa",
-      icon: <Calendar className="h-8 w-8 text-red-500" />,
-      link: "/admin/delivery"
-    },
-    { 
-      title: "Báo cáo thống kê", 
-      description: "Phân tích số liệu kinh doanh",
-      icon: <PieChart className="h-8 w-8 text-indigo-500" />,
-      link: "/admin/statistics"
-    },
-    { 
-      title: "Cài đặt hệ thống", 
-      description: "Cấu hình và thiết lập hệ thống",
-      icon: <Settings className="h-8 w-8 text-gray-500" />,
-      link: "/admin/settings"
-    }
+    // { 
+    //   title: "Quản lý kho", 
+    //   description: "Kiểm soát tồn kho và nguyên liệu",
+    //   icon: <Package className="h-8 w-8 text-orange-500" />,
+    //   link: "/admin/inventory"
+    // },
+    // { 
+    //   title: "Lịch giao hàng", 
+    //   description: "Quản lý lịch trình giao hoa",
+    //   icon: <Calendar className="h-8 w-8 text-red-500" />,
+    //   link: "/admin/delivery"
+    // },
+    // { 
+    //   title: "Cài đặt hệ thống", 
+    //   description: "Cấu hình và thiết lập hệ thống",
+    //   icon: <Settings className="h-8 w-8 text-gray-500" />,
+    //   link: "/admin/settings"
+    // }
   ];
 
   if (loading) {

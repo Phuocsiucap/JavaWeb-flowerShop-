@@ -33,7 +33,7 @@ public class OrderItemDAO extends DatabaseConnection {
         }
     }
     
-    public List<OrderItem> getOrderItemsByOrderId(int orderId) {
+    public static List<OrderItem> getOrderItemsByOrderId(int orderId) {
         List<OrderItem> items = new ArrayList<>();
         String sql = "SELECT * FROM orderitem WHERE orderId = ?";
         

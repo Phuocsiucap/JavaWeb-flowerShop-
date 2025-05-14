@@ -24,8 +24,8 @@ import AdminOrderListPage from './pages/admin/AdminOrderListPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrdersPage from './pages/admin/OrdersPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
-import RevenueReport from './pages/admin/RevenueReport';
 import ProductsPage from './pages/admin/ProductsPage';
+import RevenueReportPage from './pages/admin/RevenueReportPage';
 
 function App() {
   return (
@@ -62,7 +62,7 @@ function App() {
                     {/* <Route path="/products" element={<ProductsPage />} /> */}
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
-                    <Route path="/reports" element={<RevenueReport />} />
+                    <Route path="/reports" element={<RevenueReportPage />} />
                     <Route path="/products" element={<ProductsPage />} />
                     <Route path="/customers" element={<UsersManagement />} />
                   </Routes>

@@ -209,4 +209,31 @@ public class OrderDAO extends DatabaseConnection {
 
         return orders;
     }
+    public List<Order> getOrdersByStatus(String status) {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE status = ? ORDER BY orderDate ASC";
+
+        try (PreparedStatement statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            statement.setString(1, status);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    Order order = new Order();
+                    order.setOrderId(resultSet.getInt("orderId"));
+                    order.setUserId(resultSet.getString("userId"));
+                    order.setOrderDate(resultSet.getTimestamp("orderDate"));
+                    order.setTotalAmount(resultSet.getDouble("totalAmount"));
+                    order.setStatus(resultSet.getString("status"));
+                    order.setPaymentMethod(resultSet.getString("paymentMethod"));
+                    order.setShippingAddress(resultSet.getString("shippingAddress"));
+                    order.setPhoneNumber(resultSet.getString("phoneNumber"));
+                    orders.add(order);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error getting orders by status: " + e.getMessage());
+        }
+
+        return orders;
+    }
 }

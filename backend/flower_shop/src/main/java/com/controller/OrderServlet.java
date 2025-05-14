@@ -1,11 +1,13 @@
 package com.controller;
 
 import com.dao.OrderDAO;
+import com.dao.OrderItemDAO;
 import com.dao.UserDao;
 import com.dto.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapper.OrderMapper;
 import com.model.Order;
+import com.model.OrderItem;
 import com.model.User;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
@@ -21,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Servlet để lấy thông tin đơn hàng
+ * Servlet để lấy thông tin đơn hàng và các mục trong đơn hàng
  */
 @WebServlet("/api/orders/*")
 public class OrderServlet extends HttpServlet {
@@ -63,12 +65,12 @@ public class OrderServlet extends HttpServlet {
                         .data(Map.of("orders", OrderMapper.toMapList(orders)))
                         .build());
             } else {
-                // Xử lý các trường hợp khác (ví dụ: lấy một đơn hàng cụ thể)
-                String orderIdParam = pathInfo.substring(1); // Loại bỏ dấu "/"
-                if (orderIdParam != null && !orderIdParam.isEmpty()) {
+                String[] pathParts = pathInfo.substring(1).split("/"); // Loại bỏ dấu "/" và tách các phần
+                if (pathParts.length == 1) {
+                    // Xử lý lấy một đơn hàng cụ thể: /api/orders/{orderId}
                     int orderId;
                     try {
-                        orderId = Integer.parseInt(orderIdParam);
+                        orderId = Integer.parseInt(pathParts[0]);
                     } catch (NumberFormatException e) {
                         sendErrorResponse(response, "Mã đơn hàng không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
                         return;
@@ -81,7 +83,7 @@ public class OrderServlet extends HttpServlet {
                         return;
                     }
 
-                    // Kiểm tra quyền truy cập: Lấy user từ token để kiểm tra quyền cụ thể
+                    // Kiểm tra quyền truy cập
                     Optional<User> userOpt = authService.getUserFromToken(token);
                     if (!userOpt.isPresent()) {
                         sendErrorResponse(response, "Token không hợp lệ hoặc người dùng không tồn tại", HttpServletResponse.SC_UNAUTHORIZED);
@@ -89,17 +91,59 @@ public class OrderServlet extends HttpServlet {
                     }
                     User user = userOpt.get();
 
-                    // Kiểm tra quyền truy cập: nếu không phải admin và userId không khớp, trả về Forbidden
                     if (!user.getId().equals(order.getUserId()) && !"admin".equals(user.getRole())) {
                         sendErrorResponse(response, "Bạn không có quyền truy cập đơn hàng này", HttpServletResponse.SC_FORBIDDEN);
                         return;
                     }
 
-                    // Gửi dữ liệu JSON về client với OrderMapper
+                    // Gửi dữ liệu JSON về client
                     sendJsonResponse(response, ApiResponse.builder()
                             .success(true)
                             .message("Order retrieved successfully")
                             .data(Map.of("order", OrderMapper.toMap(order)))
+                            .build());
+                } else if (pathParts.length == 2 && "items".equals(pathParts[0])) {
+                    // Xử lý lấy các mục trong đơn hàng: /api/orders/items/{orderId}
+                    int orderId;
+                    try {
+                        orderId = Integer.parseInt(pathParts[1]);
+                    } catch (NumberFormatException e) {
+                        sendErrorResponse(response, "Mã đơn hàng không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                        return;
+                    }
+
+                    // Lấy thông tin đơn hàng để kiểm tra tồn tại và quyền
+                    Order order = orderDAO.getOrderById(orderId);
+                    if (order == null) {
+                        sendErrorResponse(response, "Không tìm thấy đơn hàng", HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    // Kiểm tra quyền truy cập
+                    Optional<User> userOpt = authService.getUserFromToken(token);
+                    if (!userOpt.isPresent()) {
+                        sendErrorResponse(response, "Token không hợp lệ hoặc người dùng không tồn tại", HttpServletResponse.SC_UNAUTHORIZED);
+                        return;
+                    }
+                    User user = userOpt.get();
+
+                    if (!user.getId().equals(order.getUserId()) && !"admin".equals(user.getRole())) {
+                        sendErrorResponse(response, "Bạn không có quyền truy cập đơn hàng này", HttpServletResponse.SC_FORBIDDEN);
+                        return;
+                    }
+
+                    // Lấy danh sách OrderItem
+                    List<OrderItem> orderItems = OrderItemDAO.getOrderItemsByOrderId(orderId);
+                    if (orderItems.isEmpty()) {
+                        sendErrorResponse(response, "Không tìm thấy mục nào trong đơn hàng", HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    // Gửi danh sách OrderItem về client (giả sử có OrderItemMapper)
+                    sendJsonResponse(response, ApiResponse.builder()
+                            .success(true)
+                            .message("Order items retrieved successfully")
+                            .data(Map.of("items", orderItems)) // Giả sử OrderItem có thể serialize trực tiếp
                             .build());
                 } else {
                     sendErrorResponse(response, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);

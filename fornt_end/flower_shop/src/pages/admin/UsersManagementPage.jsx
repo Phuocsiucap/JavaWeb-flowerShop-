@@ -10,6 +10,7 @@ import AddUserModal from '../../components/admin/users/AddUserModal';
 import EditUserModal from '../../components/admin/users/EditUserModal';
 import DeleteConfirmModal from '../../components/admin/users/DeleteConfirmModal';
 import AlertNotification from '../../components/ui/AlertNotification';
+import Cookies  from 'js-cookie';
 
 const UsersManagement = () => {
   const { verifyTokenAdmin, getAllUsers, createUser, updateUser, deleteUser } = useAdmin();
@@ -37,7 +38,7 @@ const UsersManagement = () => {
   useEffect(() => {
     const checkToken = async () => {
       try {
-        const valid = await verifyTokenAdmin();
+        const valid = await verifyTokenAdmin(Cookies.get("adminToken"));
         setIsTokenValid(valid);
         if (valid) {
           fetchUsers();
