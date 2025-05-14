@@ -1,144 +1,281 @@
-// src/components/admin/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Users, ShoppingBag, FileText, Settings, Package, TrendingUp } from 'lucide-react';
 import AppLayout from '../../components/admin/Layout';
-import { useAdmin } from "../../contexts/AdminContext";
-import RecentUsersTable from '../../components/admin/dashboard/RecentUsersTable'; 
+import { useAdmin } from '../../contexts/AdminContext';
+import RecentUsersTable from '../../components/admin/dashboard/RecentUsersTable';
 import SalesChart from '../../components/admin/dashboard/SalesChart';
-import TopProductsList from '../../components/admin/dashboard/TopProductsList'; 
+import TopProductsList from '../../components/admin/dashboard/TopProductsList';
 import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTable';
-import StatsGrid from '../../components/admin/dashboard/StatsGrid'; // Import the StatsGrid component
+import StatsGrid from '../../components/admin/dashboard/StatsGrid';
+import axios from '../../axiosInstance';
+
 const Dashboard = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [newCustomersToday, setNewCustomersToday] = useState(0);
   const [newCustomersYesterday, setNewCustomersYesterday] = useState(0);
+  const [ordersToday, setOrdersToday] = useState(0);
+  const [ordersYesterday, setOrdersYesterday] = useState(0);
+  const [revenueToday, setRevenueToday] = useState(0);
+  const [revenueYesterday, setRevenueYesterday] = useState(0);
+  const [productsSoldToday, setProductsSoldToday] = useState(0);
+  const [productsSoldYesterday, setProductsSoldYesterday] = useState(0);
   const [recentUsers, setRecentUsers] = useState([]);
-  const { getAllUsers, adminToken } = useAdmin(); 
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { getAllUsers, getAllOrders, getUserById, adminToken } = useAdmin();
+
+  const getDetailOrder = async (token, id) => {
+    try {
+      const res = await axios.get(`api/orders/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.data.order; // Expecting order with items array
+    } catch (error) {
+      console.error(`Error fetching order ${id}:`, error);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (adminToken) {
-        try {
-          const users = await getAllUsers();
-          const customers = users.filter(user => user.role === "customer");
-          setTotalCustomers(customers.length);  
+    const fetchUsersData = async () => {
+      try {
+        const users = await getAllUsers();
+        const customers = users.filter((user) => user.role === 'customer');
+        setTotalCustomers(customers.length);
 
-          const today = new Date();
-          const startOfToday = new Date(today.setHours(0, 0, 0, 0));
-          const endOfToday = new Date(today.setHours(23, 59, 59, 999));
-          const yesterday = new Date(startOfToday);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
-          const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
+        const today = new Date();
+        const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+        const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+        const yesterday = new Date(startOfToday);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
+        const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
 
-          const newToday = customers.filter(user => {
-            const createdAt = new Date(user.createdAt);
-            return createdAt >= startOfToday && createdAt <= endOfToday;
-          });
+        const newToday = customers.filter((user) => {
+          const createdAt = new Date(user.createdAt);
+          return createdAt >= startOfToday && createdAt <= endOfToday;
+        });
+        const newYesterday = customers.filter((user) => {
+          const createdAt = new Date(user.createdAt);
+          return createdAt >= startOfYesterday && createdAt <= endOfYesterday;
+        });
+        setNewCustomersToday(newToday.length);
+        setNewCustomersYesterday(newYesterday.length);
 
-          const newYesterday = customers.filter(user => {
-            const createdAt = new Date(user.createdAt);
-            return createdAt >= startOfYesterday && createdAt <= endOfYesterday;
-          });
-
-          setNewCustomersToday(newToday.length);
-          setNewCustomersYesterday(newYesterday.length);
-
-          const sortedUsers = [...users].sort((a, b) => {
+        const sortedUsers = [...users]
+          .sort((a, b) => {
             if (!a.lastLogin) return 1;
             if (!b.lastLogin) return -1;
             return new Date(b.lastLogin) - new Date(a.lastLogin);
-          });
-
-          setRecentUsers(sortedUsers.slice(0, 5));  
-        } catch (error) {
-          console.error("Error fetching users:", error);
-        }
+          })
+          .slice(0, 5);
+        setRecentUsers(sortedUsers);
+      } catch (error) {
+        console.error('Error fetching users data:', error);
+        setError('Failed to load user data.');
       }
     };
 
-    fetchUsers();
-  }, [adminToken, getAllUsers]);
+    const fetchOrdersData = async () => {
+      try {
+        const today = new Date();
+        const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+        const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+        const yesterday = new Date(startOfToday);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
+        const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
+
+        // Fetch all orders (basic data)
+        const ordersResponse = await getAllOrders();
+        const orders = ordersResponse;
+
+        // Fetch detailed order data including items
+        const detailedOrders = await Promise.all(
+          orders.map(async (order) => {
+            const detailedOrder = await getDetailOrder(adminToken, order.orderId);
+            if (!detailedOrder) return null;
+            const customer = order.userId ? await getUserById(order.userId) : null;
+            return {
+              ...detailedOrder,
+              createdAt: new Date(detailedOrder.orderDate),
+              totalPrice: detailedOrder.totalAmount,
+              customer,
+            };
+          })
+        );
+
+        // Filter out null orders (failed fetches)
+        const mappedOrders = detailedOrders.filter((order) => order !== null);
+
+        // Orders today and yesterday
+        const ordersTodayList = mappedOrders.filter((order) => {
+          const createdAt = new Date(order.createdAt);
+          return createdAt >= startOfToday && createdAt <= endOfToday;
+        });
+        const ordersYesterdayList = mappedOrders.filter((order) => {
+          const createdAt = new Date(order.createdAt);
+          return createdAt >= startOfYesterday && createdAt <= endOfYesterday;
+        });
+        setOrdersToday(ordersTodayList.length);
+        setOrdersYesterday(ordersYesterdayList.length);
+
+        // Revenue today and yesterday
+        setRevenueToday(ordersTodayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
+        setRevenueYesterday(ordersYesterdayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
+
+        // Products sold today and yesterday
+        setProductsSoldToday(
+          ordersTodayList.reduce(
+            (sum, order) =>
+              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            0
+          )
+        );
+        setProductsSoldYesterday(
+          ordersYesterdayList.reduce(
+            (sum, order) =>
+              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            0
+          )
+        );
+
+        // Recent orders
+        const recentOrdersList = mappedOrders
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 10); // Limit to 10 for performance
+        setRecentOrders(recentOrdersList);
+
+        // Top products
+        const productSales = {};
+        const productNames = {};
+        mappedOrders.forEach((order) => {
+          if (order.items) {
+            order.items.forEach((item) => {
+              productSales[item.productId] = (productSales[item.productId] || 0) + (item.quantity || 0);
+              productNames[item.productId] = item.productName || `Sản phẩm ${item.productId}`;
+            });
+          }
+        });
+        const topProductIds = Object.entries(productSales)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([id]) => id);
+        const topProductsList = topProductIds.map((id) => ({
+          id,
+          name: productNames[id],
+          sold: productSales[id],
+          imageUrl: mappedOrders
+            .flatMap((order) => order.items || [])
+            .find((item) => item.productId === id)?.imageUrl,
+        }));
+        setTopProducts(topProductsList);
+      } catch (error) {
+        console.error('Error fetching orders data:', error);
+        setError('Failed to load order data.');
+      }
+    };
+
+    const fetchData = async () => {
+      if (!adminToken) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        await Promise.all([fetchUsersData(), fetchOrdersData()]);
+      } catch (error) {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [adminToken, getAllUsers, getAllOrders, getUserById]);
 
   const stats = [
-    { title: "Khách hàng mới", value: newCustomersToday, change: newCustomersToday - newCustomersYesterday > 0 ? `Tăng ${newCustomersToday - newCustomersYesterday}` : `Giảm ${newCustomersToday - newCustomersYesterday}`, icon: <Users size={24} /> },
-    { title: "Đơn hàng hôm nay", value: "24", change: "+12%", icon: <ShoppingBag size={24} /> },
-    { title: "Doanh thu", value: "₫2.5M", change: "+18%", icon: <TrendingUp size={24} /> },
-    { title: "Sản phẩm đã bán", value: "42", change: "+7%", icon: <Package size={24} /> },
-  ];
-
-  const recentOrders = [
-    { id: "ORD-7291", customer: "Nguyễn Văn A", date: "24/04/2025", status: "Đã giao", amount: "₫450,000" },
-    { id: "ORD-7290", customer: "Trần Thị B", date: "24/04/2025", status: "Đang giao", amount: "₫750,000" },
-    { id: "ORD-7289", customer: "Lê Văn C", date: "23/04/2025", status: "Đang xử lý", amount: "₫350,000" },
-    { id: "ORD-7288", customer: "Phạm Thị D", date: "23/04/2025", status: "Đã giao", amount: "₫680,000" },
-    { id: "ORD-7287", customer: "Hoàng Văn E", date: "22/04/2025", status: "Đã hủy", amount: "₫230,000" },
+    {
+      title: 'Khách hàng mới',
+      value: newCustomersToday,
+      change: newCustomersYesterday > 0
+        ? `${((newCustomersToday - newCustomersYesterday) / newCustomersYesterday * 100).toFixed(1)}%`
+        : '0%',
+      icon: <Users size={24} />,
+    },
+    {
+      title: 'Đơn hàng hôm nay',
+      value: ordersToday,
+      change: ordersYesterday > 0
+        ? `${((ordersToday - ordersYesterday) / ordersYesterday * 100).toFixed(1)}%`
+        : '0%',
+      icon: <ShoppingBag size={24} />,
+    },
+    {
+      title: 'Doanh thu',
+      value: `₫${revenueToday.toLocaleString()}`,
+      change: revenueYesterday > 0
+        ? `${((revenueToday - revenueYesterday) / revenueYesterday * 100).toFixed(1)}%`
+        : '0%',
+      icon: <TrendingUp size={24} />,
+    },
+    {
+      title: 'Sản phẩm đã bán',
+      value: productsSoldToday,
+      change: productsSoldYesterday > 0
+        ? `${((productsSoldToday - productsSoldYesterday) / productsSoldYesterday * 100).toFixed(1)}%`
+        : '0%',
+      icon: <Package size={24} />,
+    },
   ];
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Đã giao": return "bg-green-100 text-green-800";
-      case "Đang giao": return "bg-blue-100 text-blue-800";
-      case "Đang xử lý": return "bg-yellow-100 text-yellow-800";
-      case "Đã hủy": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case 'Đã giao':
+        return 'bg-green-100 text-green-800';
+      case 'Đang giao':
+        return 'bg-blue-100 text-blue-800';
+      case 'Đang xử lý':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Đã hủy':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-  const topProducts = [
-  {
-    id: 1,
-    name: "Bó hoa hồng đỏ",
-    sold: 42,
-    price: 350000,
-  },
-  {
-    id: 2,
-    name: "Hộp hoa tulip mix",
-    sold: 36,
-    price: 450000,
-  },
-  {
-    id: 3,
-    name: "Giỏ hoa lan hồ điệp",
-    sold: 28,
-    price: 750000,
-  },
-];
 
-
-  // Formatage de la date pour l'affichage
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
   };
 
+  if (isLoading) return <div className="p-6">Loading...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
+
   return (
     <AppLayout>
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Tổng quan</h1>
-      
-      {/* Stats Grid */}
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Tổng quan</h1>
+
+        {/* Stats Grid */}
         <StatsGrid stats={stats} totalCustomers={totalCustomers} />
 
-       {/* Recent Orders */}
+        {/* Recent Orders */}
         <RecentOrdersTable orders={recentOrders} />
 
-
-       {/* Recent Users */}
+        {/* Recent Users */}
         <RecentUsersTable users={recentUsers} />
 
-      {/* Sales Chart and Inventory Summary would go here */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Sales Chart and Top Products */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <SalesChart orders={recentOrders} />
-
           <TopProductsList products={topProducts} />
         </div>
-    </div>
+      </div>
     </AppLayout>
   );
 };
 
 export default Dashboard;
-

@@ -83,6 +83,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
+  const getDetailOrder = async (token,id) => {
+        try {
+          const res = await axios.get(`api/orders/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return res.data.data.order; // trả về đúng mảng orders từ API
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+          return [];
+        }
+      };
+  
+
   const value = {
     currentUser,
     setInfo,
@@ -90,7 +104,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     forgotPassword,
-    updateUserProfile
+    updateUserProfile,
+    getDetailOrder
   };
 
   return (

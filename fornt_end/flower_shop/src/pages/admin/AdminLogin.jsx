@@ -21,7 +21,7 @@ const LoginPage = () => {
       const userData = await loginAdmin(email, password);  // Gọi login từ AdminContext
 
       
-        if (await verifyTokenAdmin()) {
+        if (userData) {
           navigate("/admin/home");
         }else {
           alert("Bạn không có quyền truy cập vào trang này");

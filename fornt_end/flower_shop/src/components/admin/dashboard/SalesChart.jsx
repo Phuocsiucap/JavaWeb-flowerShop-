@@ -6,29 +6,28 @@ import {
 const SalesChart = ({ orders }) => {
   // Tính tổng doanh thu theo ngày
   const salesData = useMemo(() => {
-  const map = {};
+    const map = {};
 
-  orders.forEach(order => {
-    const date = order.date; // e.g., "24/04/2025"
-    const amount = Number(order.amount.replace(/[₫,]/g, '')); // Chuyển "₫450,000" → 450000
+    orders.forEach(order => {
+      // Giả sử order.orderDate là chuỗi ISO như "2025-05-15T00:00:00"
+      const date = new Date(order.orderDate).toLocaleDateString('vi-VN'); // "15/05/2025"
+      const amount = order.totalAmount || 0;
 
-    if (map[date]) {
-      map[date] += amount;
-    } else {
-      map[date] = amount;
-    }
-  });
-
-  // Chuyển object thành mảng và sắp xếp tăng dần theo ngày
-  return Object.entries(map)
-    .map(([date, sales]) => ({ date, sales }))
-    .sort((a, b) => {
-      const [dayA, monthA, yearA] = a.date.split('/').map(Number);
-      const [dayB, monthB, yearB] = b.date.split('/').map(Number);
-      return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+      if (map[date]) {
+        map[date] += amount;
+      } else {
+        map[date] = amount;
+      }
     });
-}, [orders]);
 
+    return Object.entries(map)
+      .map(([date, sales]) => ({ date, sales }))
+      .sort((a, b) => {
+        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
+        return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+      });
+  }, [orders]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);

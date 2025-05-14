@@ -1,4 +1,3 @@
-// src/components/admin/Dashboard/RecentOrdersTable.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,6 +9,16 @@ const RecentOrdersTable = ({ orders }) => {
       case "Đang xử lý": return "bg-yellow-100 text-yellow-800";
       case "Đã hủy": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const translateStatus = (status) => {
+    switch (status) {
+      case "Delivered": return "Đã giao";
+      case "Shipping": return "Đang giao";
+      case "Pending": return "Đang xử lý";
+      case "Cancelled": return "Đã hủy";
+      default: return status;
     }
   };
 
@@ -32,16 +41,22 @@ const RecentOrdersTable = ({ orders }) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{order.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.customer}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
+              <tr key={order.orderId} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{order.orderId}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {order.customer?.fullName || order.userId || "Ẩn danh"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(order.status)}`}>
-                    {order.status}
+                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(translateStatus(order.status))}`}>
+                    {translateStatus(order.status)}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.amount}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {order.totalAmount.toLocaleString('vi-VN')} đ
+                </td>
               </tr>
             ))}
           </tbody>

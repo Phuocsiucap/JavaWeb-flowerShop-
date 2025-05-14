@@ -9,17 +9,12 @@ export const AdminProvider = ({ children }) => {
   const [adminToken, setAdminToken] = useState(Cookies.get('adminToken') || null);
 
   const verifyTokenAdmin = async (adminToken) => {
-    if (adminToken !== null ) adminToken= Cookies.get('adminToken');
     if (adminToken) {
       const res = await axios.get('/api/auth/me', {
         headers: { Authorization: `Bearer ${adminToken}` }
-      }
-     
-      );
-    
+      });
       console.log(res.data);
-      
-      if(res.data.role === "customer") {
+      if (res.data.role === "customer") {
         Cookies.remove('adminToken');
         return false;
       }
@@ -46,7 +41,6 @@ export const AdminProvider = ({ children }) => {
         console.log("data", data);
         setAdminToken(token);
         Cookies.set('adminToken', token);
-        
         return true;
       } catch (error) {
         console.error("Login error:", error);
@@ -86,9 +80,9 @@ export const AdminProvider = ({ children }) => {
       return null;
     }
   };
+
   const createUser = async (userData) => {
     try {
-
       const res = await axios.post('api/admin/management/users', {
         name: userData.fullName,
         email: userData.email,
@@ -122,7 +116,6 @@ export const AdminProvider = ({ children }) => {
 
   const updateUser = async (userId, updatedData) => {
     try {
-      // Only include password in the payload if it's provided
       const payload = {
         name: updatedData.fullName,
         email: updatedData.email,
@@ -131,8 +124,6 @@ export const AdminProvider = ({ children }) => {
         address: updatedData.address,
         status: updatedData.status
       };
-      
-      // Add password only if it exists
       if (updatedData.password) {
         payload.password = updatedData.password;
       }
@@ -140,7 +131,6 @@ export const AdminProvider = ({ children }) => {
       const res = await axios.put(`api/admin/management/users/${userId}`, payload, {
         headers: { Authorization: `Bearer ${adminToken}` }
       });
-      
       return res.data;
     } catch (error) {
       console.error(`Error updating user ${userId}:`, error);
@@ -161,6 +151,20 @@ export const AdminProvider = ({ children }) => {
     }
   };
 
+  const getAllOrders = async (filters = {}) => {
+        try {
+          const res = await axios.get('api/orders/', {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          params: filters
+        });
+        return res.data.data.orders; // trả về đúng mảng orders từ API
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+          return [];
+        }
+      };
+
+
   const value = {
     adminToken,
     userinfo,
@@ -171,7 +175,8 @@ export const AdminProvider = ({ children }) => {
     getUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    getAllOrders
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

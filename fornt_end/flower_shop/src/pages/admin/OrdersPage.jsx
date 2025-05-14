@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../../axiosInstance';
 import { Search, Filter, ArrowUpDown, Eye, Download } from 'lucide-react';
 import AdminLayout from '../../components/admin/Layout';
 import Cookies from 'js-cookie';
@@ -15,19 +15,33 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
       const token = Cookies.get('adminToken');
       try {
-        const response = await axios.get(`http://localhost:8080/flower_shop/api/orders`, {
+        const response = await axios.get(`/api/orders`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
-
+        console.log(response);
         // Đảm bảo response.data là mảng (danh sách đơn hàng)
-        if (Array.isArray(response.data)) {
-          setOrders(response.data);
-        } else {
-          throw new Error('Dữ liệu trả về không phải là danh sách đơn hàng');
-        }
+        
+        setOrders(
+          response.data.data.orders.map((o) => ({
+            id: o.orderId,
+            customer: o.phoneNumber || 'Ẩn danh',
+            date: new Date(o.orderDate).toLocaleDateString('vi-VN'),
+            status: {
+              Pending: 'Đang xử lý',
+              Processing: 'Đang giao',
+              Completed: 'Đã giao',
+              Cancelled: 'Đã hủy',
+            }[o.status] || o.status,
+            payment: o.paymentMethod === 'Cash' ? 'Đã thanh toán' : 'Chờ thanh toán',
+            amount: o.totalAmount,
+            items: 1, // hoặc o.items.length nếu có
+          }))
+        );
+
+        
       } catch (err) {
         setError(err.response?.data?.message || err.message);
       } finally {
