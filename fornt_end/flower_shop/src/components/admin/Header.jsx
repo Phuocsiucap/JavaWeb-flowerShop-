@@ -19,7 +19,7 @@ const Header = () => {
     { title: 'Tổng quan', icon: <LayoutDashboard size={18} />, path: '/admin' },
     { title: 'Đơn hàng', icon: <ShoppingBag size={18} />, path: '/admin/orders' },
     { title: 'Sản phẩm', icon: <Package size={18} />, path: '/admin/products' },
-    { title: 'Khách hàng', icon: <Users size={18} />, path: '/admin/customers' },
+    { title: 'Người dùng', icon: <Users size={18} />, path: '/admin/customers' },
     { title: 'Báo cáo', icon: <FileText size={18} />, path: '/admin/reports' },
     { title: 'Cài đặt', icon: <Settings size={18} />, path: '/admin/settings' },
   ];

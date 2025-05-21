@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OrderMapper {
+
     public static Map<String, Object> toMap(Order order) {
         Map<String, Object> map = new HashMap<>();
         map.put("orderId", order.getOrderId());
@@ -17,7 +18,7 @@ public class OrderMapper {
         map.put("totalAmount", order.getTotalAmount());
         map.put("status", order.getStatus());
         map.put("paymentMethod", order.getPaymentMethod());
-//        map.put("items", order.getItems());
+        map.put("items", order.getItems() != null ? OrderItemMapper.toMapList(order.getItems()) : null); // Sử dụng OrderItemMapper
         map.put("shippingAddress", order.getShippingAddress());
         map.put("phoneNumber", order.getPhoneNumber());
         return map;

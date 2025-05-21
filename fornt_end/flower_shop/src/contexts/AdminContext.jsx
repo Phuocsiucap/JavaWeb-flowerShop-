@@ -152,17 +152,52 @@ export const AdminProvider = ({ children }) => {
   };
 
   const getAllOrders = async (filters = {}) => {
-        try {
-          const res = await axios.get('api/orders/', {
-          headers: { Authorization: `Bearer ${adminToken}` },
-          params: filters
-        });
-        return res.data.data.orders; // trả về đúng mảng orders từ API
-        } catch (error) {
-          console.error("Error fetching orders:", error);
-          return [];
-        }
+    try {
+      const res = await axios.get('api/orders/', {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        params: filters
+      });
+      // Đảm bảo trả về danh sách Map từ OrderMapper
+      return res.data.data.orders || []; // Thêm kiểm tra null để tránh lỗi
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      return [];
+    }
+  };
+
+  const getOrderItems = async (orderId) => {
+    try {
+      const res = await axios.get(`api/orders/${orderId}/items`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      // Đảm bảo trả về danh sách Map từ OrderItemMapper
+      return res.data.data.items || []; // Thêm kiểm tra null để tránh lỗi
+    } catch (error) {
+      console.error(`Error fetching items for order ${orderId}:`, error.response?.data?.message || error.message);
+      return [];
+    }
+  };
+
+  const deleteOrder = async (orderId) => {
+    try {
+      const res = await axios.delete(`api/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      // Trả về dữ liệu để frontend có thể xử lý (ví dụ: cập nhật trạng thái)
+      return {
+        success: res.data.success,
+        message: res.data.message,
+        orderId: res.data.data?.orderId
       };
+    } catch (error) {
+      console.error(`Error deleting order ${orderId}:`, error.response?.data?.message || error.message);
+      throw {
+        success: false,
+        message: error.response?.data?.message || 'Không thể xóa đơn hàng',
+        error: error
+      };
+    }
+  };
 
 
   const value = {
@@ -176,7 +211,9 @@ export const AdminProvider = ({ children }) => {
     createUser,
     updateUser,
     deleteUser,
-    getAllOrders
+    getAllOrders,
+    getOrderItems,
+    deleteOrder
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

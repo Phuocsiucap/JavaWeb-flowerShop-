@@ -126,7 +126,7 @@ const ProductDetail = () => {
           <div className="md:w-1/2 p-6">
             <div className="relative">
               <img 
-                src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
+                src={product.imageUrl|| '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-auto object-cover rounded-lg"
               />

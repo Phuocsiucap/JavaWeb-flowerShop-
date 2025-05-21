@@ -1,61 +1,49 @@
-import React, { createContext, useState, useEffect} from 'react';
-
-import axios from '../axiosInstance'; // đường dẫn phù hợp project của bạn
+import React, { createContext, useState, useEffect } from 'react';
+import axios from '../axiosInstance';
 import Cookies from 'js-cookie';
+
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
 
-  const setInfo = async() => {
+  const setInfo = async () => {
     const token = Cookies.get('token');
     if (token) {
       try {
         const res = await axios.get('/api/auth/me', {
-          headers:  {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(res.data);
       } catch (error) {
         setCurrentUser(null);
       }
     }
-
     setLoading(false);
   };
 
-    // ✅ Fetch thông tin người dùng khi AuthProvider khởi tạo
-    useEffect(() => {
-      setInfo();
-    }, []); // Chỉ chạy một lần khi component mount
+  useEffect(() => {
+    setInfo();
+  }, []);
 
   const login = async (email, password) => {
-    var res = await axios.post('/api/auth/login', { email, password });
-    res = res.data; // Lấy dữ liệu từ response
-    console.log(res); // Kiểm tra dữ liệu trả về từ server
-    Cookies.set('token', res.data.token); // Lưu token
-    setInfo(); // Lấy thông tin người dùng
-    // setCurrentUser(res.data.user); // Lưu thông tin người dùng
+    const res = await axios.post('/api/auth/login', { email, password });
+    Cookies.set('token', res.data.data.token);
+    setInfo();
     return res.data;
   };
 
   const register = async (email, password, name) => {
     const res = await axios.post('/api/auth/register', { email, password, name });
-    // localStorage.setItem('token', res.data.token); // Lưu token
-    // setCurrentUser(res.data.user); // Lưu thông tin người dùng
     return res.data;
   };
 
   const logout = async () => {
-    
     setCurrentUser(null);
-    var res = await axios.post('/api/auth/logout');
-    Cookies.remove('token'); // Xóa token
+    const res = await axios.post('/api/auth/logout');
+    Cookies.remove('token');
     return res.data;
-    
   };
 
   const forgotPassword = async (email) => {
@@ -66,48 +54,112 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = Cookies.get('token');
       const res = await axios.put('/api/auth/update-profile', {
-        "email": userData.email,
-        "name": userData.name,
-        "address": userData.address,
-        "phone": userData.phone
+        email: userData.email,
+        name: userData.name,
+        address: userData.address,
+        phone: userData.phone
       }, {
-        headers: { Authorization: `Bearer ${token}`}
+        headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentUser(res.data.data.user);
-      console.log(res.data); // Kiểm tra dữ liệu trả về từ server
-      alert(res.data.message); // Hiển thị thông báo từ server
-      return res.data.data.user; // Trả về dữ liệu người dùng đã cập nhật
+      alert(res.data.message);
+      return res.data.data.user;
     } catch (error) {
       console.error("Error updating user profile:", error);
       throw error;
     }
   };
 
+  // Lấy danh sách đơn hàng của user
+  const getUserOrders = async () => {
+    try {
+      const token = Cookies.get('token');
+      if (!token || !currentUser?.id) return [];
+      const res = await axios.get(`/api/orders/user/${currentUser.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        return res.data.data.orders.map(order => ({
+          id: order.orderId,
+          date: new Date(order.orderDate).toLocaleDateString('en-CA'),
+          total: order.totalAmount,
+          status: order.status === 'Success' ? 'Thành công' :
+                  order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+      return [];
+    }
+  };
 
-  const getDetailOrder = async (token,id) => {
-        try {
-          const res = await axios.get(`api/orders/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return res.data.data.order; // trả về đúng mảng orders từ API
-        } catch (error) {
-          console.error("Error fetching orders:", error);
-          return [];
-        }
-      };
+  // Lấy chi tiết một đơn hàng
+  const getDetailOrder = async (orderId) => {
+    try {
+      const token = Cookies.get('token');
+      const res = await axios.get(`/api/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return res.data.data.order || null;
+    } catch (error) {
+      console.error("Error fetching order details:", error);
+      return null;
+    }
+  };
 
-    const getOrderItems = async (token,orderId) => {
-        try {
-          const res = await axios.get(`/api/orders/items/${orderId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return res.data.data.items; // trả về đúng mảng orders từ API
-        } catch (error) {
-          console.error("Error fetching orders:", error);
-          return [];
-        }
-      };
-  
+  // Lấy danh sách sản phẩm trong đơn hàng
+  const getOrderItems = async (orderId) => {
+    try {
+      const token = Cookies.get('token');
+      const res = await axios.get(`/api/orders/${orderId}/items`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return res.data.data.items || [];
+    } catch (error) {
+      console.error("Error fetching order items:", error);
+      return [];
+    }
+  };
+
+  // Cập nhật trạng thái đơn hàng (chưa hỗ trợ trong servlet, cần thêm logic)
+  const updateOrderStatus = async (orderId, newStatus) => {
+  try {
+    const token = Cookies.get('token');
+    const res = await axios.post(`/api/orders/${orderId}?status=${newStatus}`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.data.success) {
+      await getUserOrders();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return false;
+  }
+};
+
+  // Xóa đơn hàng (chỉ admin, cần kiểm tra role)
+  const deleteOrder = async (orderId) => {
+    try {
+      const token = Cookies.get('token');
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error('Chỉ admin có quyền xóa đơn hàng');
+      }
+      const res = await axios.delete(`/api/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        await getUserOrders(); // Cập nhật lại danh sách
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      return false;
+    }
+  };
 
   const value = {
     currentUser,
@@ -117,8 +169,11 @@ export const AuthProvider = ({ children }) => {
     logout,
     forgotPassword,
     updateUserProfile,
+    getUserOrders,
     getDetailOrder,
-    getOrderItems
+    getOrderItems,
+    updateOrderStatus,
+    deleteOrder
   };
 
   return (
