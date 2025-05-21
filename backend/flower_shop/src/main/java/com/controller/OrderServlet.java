@@ -9,6 +9,7 @@ import com.mapper.OrderMapper;
 import com.mapper.OrderItemMapper;
 import com.model.Order;
 import com.model.OrderItem;
+import com.dto.request.UpdateOrderStatusRequest;
 import com.model.User;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
@@ -19,6 +20,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +33,11 @@ public class OrderServlet extends HttpServlet {
     private final OrderItemDAO orderItemDAO = new OrderItemDAO();
     private final AuthService authService = new AuthServiceImpl(new UserDao(), orderDAO);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    public static class OrderStatus {
+        public static final String PROCESSING = "Đang xử lý";
+        public static final String SUCCESS = "Thành công";
+        public static final String CANCELLED = "Đã hủy";
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -166,97 +173,76 @@ public class OrderServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        try {
-            String authHeader = request.getHeader("Authorization");
-            System.out.println("Authorization Header: " + authHeader);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                sendErrorResponse(response, "Thiếu hoặc không hợp lệ token xác thực", HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
-
-            String token = authHeader.substring(7);
-            Optional<User> userOpt = authService.getUserFromToken(token);
-            if (!userOpt.isPresent()) {
-                sendErrorResponse(response, "Token không hợp lệ hoặc người dùng không tồn tại", HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
-            User user = userOpt.get();
-            System.out.println("Authenticated user ID: " + user.getId());
-
-            String pathInfo = request.getPathInfo();
-            if (pathInfo == null || !pathInfo.matches("/\\d+")) {
-                sendErrorResponse(response, "Order ID is required", HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-
-            String[] pathParts = pathInfo.substring(1).split("/");
-            int orderId;
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String pathInfo = req.getPathInfo();
+        if (pathInfo != null && pathInfo.startsWith("/update-status")) {
             try {
-                orderId = Integer.parseInt(pathParts[0]);
-                System.out.println("Processing orderId: " + orderId);
-            } catch (NumberFormatException e) {
-                sendErrorResponse(response, "Invalid Order ID format: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
+                // Lấy userId từ request (đã được JwtAuthFilter set vào)
+                String userId = (String) req.getAttribute("userId");
+                String role = (String) req.getAttribute("role");
 
-            Order order = orderDAO.getOrderById(orderId);
-            if (order == null) {
-                System.out.println("Order not found for orderId: " + orderId);
-                sendErrorResponse(response, "Order not found", HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            System.out.println("Order found, current status: " + order.getStatus());
+                if (userId == null) {
+                    sendErrorResponse(resp, "Không tìm thấy thông tin người dùng từ token", HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
-            // Kiểm tra quyền truy cập
-            if (!user.getId().equals(order.getUserId()) && !"admin".equals(user.getRole())) {
-                System.out.println("Unauthorized access attempt by user: " + user.getId());
-                sendErrorResponse(response, "Bạn không có quyền cập nhật trạng thái đơn hàng này", HttpServletResponse.SC_FORBIDDEN);
-                return;
-            }
+                // Đọc JSON body
+                UpdateOrderStatusRequest request = objectMapper.readValue(req.getInputStream(), UpdateOrderStatusRequest.class);
+                int orderId = request.getOrderId();
+                String newStatus = request.getStatus();
 
-            String newStatus = request.getParameter("status");
-            if (newStatus == null || (!newStatus.equals("Success") && !newStatus.equals("Cancelled"))) {
-                sendErrorResponse(response, "Trạng thái không hợp lệ. Chỉ chấp nhận 'Success' hoặc 'Cancelled'", HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
+                Order order = orderDAO.getOrderById(orderId);
+                if (order == null) {
+                    sendErrorResponse(resp, "Order không tồn tại", HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
 
-            // Kiểm tra trạng thái hợp lệ
-            if ("Success".equals(newStatus) && !"Đang xử lý".equals(order.getStatus())) {
-                System.out.println("Invalid status transition for orderId: " + orderId + ", current status: " + order.getStatus());
-                sendErrorResponse(response, "Chỉ đơn hàng 'Đang xử lý' mới được thanh toán", HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-            if ("Cancelled".equals(newStatus) && !"Đang xử lý".equals(order.getStatus())) {
-                System.out.println("Invalid status transition for orderId: " + orderId + ", current status: " + order.getStatus());
-                sendErrorResponse(response, "Chỉ đơn hàng 'Đang xử lý' mới được hủy", HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
+                // Kiểm tra quyền
+                if (!userId.equals(order.getUserId()) && !"admin".equals(role)) {
+                    sendErrorResponse(resp, "Bạn không có quyền cập nhật đơn hàng này", HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
 
-            // Gọi orderDAO.updateOrderStatus
-            boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
-            if (updated) {
-                System.out.println("Order status updated successfully for orderId: " + orderId + " to " + newStatus);
-                sendJsonResponse(response, ApiResponse.builder()
-                        .success(true)
-                        .message("Cập nhật trạng thái thành công")
-                        .data(Map.of("orderId", orderId, "status", newStatus))
-                        .build());
-            } else {
-                System.out.println("Failed to update order status for orderId: " + orderId);
-                sendErrorResponse(response, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                String currentStatus = order.getStatus();
+                if (currentStatus == null) {
+                    sendErrorResponse(resp, "Trạng thái hiện tại không xác định", HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+
+                if ("Success".equals(newStatus)) {
+                    if (!"Pending".equals(currentStatus)) {
+                        sendErrorResponse(resp, "Chỉ có thể chuyển sang Success nếu trạng thái hiện tại là Pending", HttpServletResponse.SC_BAD_REQUEST);
+                        return;
+                    }
+                } else if ("Cancelled".equals(newStatus)) {
+                    if (!"Pending".equals(currentStatus)) {
+                        sendErrorResponse(resp, "Chỉ có thể hủy đơn khi trạng thái hiện tại là Pending", HttpServletResponse.SC_BAD_REQUEST);
+                        return;
+                    }
+                } else {
+                    // Không cho phép cập nhật về Pending hoặc trạng thái khác
+                    sendErrorResponse(resp, "Trạng thái mới không hợp lệ: " + newStatus, HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+
+                boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
+                if (updated) {
+                    sendJsonResponse(resp, ApiResponse.builder()
+                            .success(true)
+                            .message("Cập nhật trạng thái thành công")
+                            .data(Map.of("orderId", orderId, "status", newStatus))
+                            .build(), HttpServletResponse.SC_OK);
+                } else {
+                    sendErrorResponse(resp, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendErrorResponse(resp, "Lỗi xử lý yêu cầu: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
             }
-        } catch (Exception e) {
-            System.err.println("Server error details: " + e.getMessage());
-            e.printStackTrace(); // In stack trace để debug
-            sendErrorResponse(response, "Failed to update order status: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } else {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            resp.getWriter().write("Endpoint không tồn tại");
         }
     }
 

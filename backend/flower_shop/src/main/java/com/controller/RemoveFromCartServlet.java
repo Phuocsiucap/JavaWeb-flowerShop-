@@ -19,7 +19,7 @@ import java.util.Optional;
 @WebServlet("/api/cart/remove/*")
 public class RemoveFromCartServlet extends CartController {
     private static final long serialVersionUID = 1L;
-    private static final AuthService authService = new AuthServiceImpl(new UserDao());
+    private static final AuthService authService = new AuthServiceImpl(new UserDao(), null);
     private static final CartDAO cartDAO = new CartDAO();
     private final ObjectMapper objectMapper = new ObjectMapper();
 

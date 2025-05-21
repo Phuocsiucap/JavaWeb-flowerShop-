@@ -11,7 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
-@WebFilter(filterName = "JwtAuthFilter", urlPatterns = {"/api/auth/me", "/api/auth/logout", "/api/auth/update-profile", "/api/auth/*"})
+@WebFilter(filterName = "JwtAuthFilter", urlPatterns = {
+	    "/api/auth/me", "/api/auth/logout", "/api/auth/update-profile",
+	    "/api/auth/*", "/api/orders/update-status", "/api/orders/*"
+	})
 public class JwtAuthFilter implements Filter {
 	 private final ObjectMapper objectMapper = new ObjectMapper();
 

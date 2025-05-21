@@ -55,7 +55,10 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
       }
 
       // Sử dụng query parameter thay vì body
-      const updateResponse = await axios.put(`/api/orders/${orderId}?status=${newStatus}`, null, {
+      const updateResponse = await axios.put(`/api/orders/update-status`, {
+        orderId: orderId,
+        status: newStatus
+      }, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -147,7 +150,7 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                             <thead className="bg-gray-100">
                               <tr>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                  Product Name
+                                  Product Id
                                 </th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                   Quantity
@@ -164,7 +167,7 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                               {orderItems.length > 0 ? (
                                 orderItems.map((item, index) => (
                                   <tr key={index}>
-                                    <td className="px-4 py-2">{item.productName || 'Unknown Product'}</td>
+                                    <td className="px-4 py-2">{item.productId || 'Unknown Product'}</td>
                                     <td className="px-4 py-2">{item.quantity}</td>
                                     <td className="px-4 py-2">{formatPrice(item.price)}</td>
                                     <td className="px-4 py-2">{formatPrice(item.price * item.quantity)}</td>
@@ -179,24 +182,27 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                               )}
                             </tbody>
                           </table>
-                          <div className="mt-4 flex space-x-4">
-                            <button
-                              onClick={() => handleUpdateStatus(order.id, 'Success')}
-                              className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
-                              disabled={false}
-                              title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
-                            >
-                              Thanh toán
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
-                              className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                              disabled={false}
-                              title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
-                            >
-                              Hủy đơn hàng
-                            </button>
-                          </div>
+                          {/* Hiển thị nút chỉ khi trạng thái là Đang xử lý */}
+                          {order.status === 'Đang xử lý' && (
+                            <div className="mt-4 flex space-x-4">
+                              <button
+                                onClick={() => handleUpdateStatus(order.id, 'Success')}
+                                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+                                disabled={false}
+                                title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
+                              >
+                                Thanh toán
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
+                                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+                                disabled={false}
+                                title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
+                              >
+                                Hủy đơn hàng
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
