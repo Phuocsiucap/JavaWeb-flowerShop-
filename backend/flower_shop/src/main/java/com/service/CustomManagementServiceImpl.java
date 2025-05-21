@@ -18,7 +18,7 @@ public class CustomManagementServiceImpl implements CustomManagementService {
         this.userDao = userDao;
     }
 
-    
+
 
     @Override
     public List<User> getUsers(UserSearchRequest searchRequest) {

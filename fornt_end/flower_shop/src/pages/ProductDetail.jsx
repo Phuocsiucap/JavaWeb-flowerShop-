@@ -5,6 +5,7 @@ import { BASE_URL } from '../config'
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
 import Header from '../components/layout/Header';
+import ProductReviews from '../components/ui/ProductReviews'; // Import ProductReviews component
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -110,131 +111,132 @@ const ProductDetail = () => {
 
   return (
     <div>
-    <Header />
-    <div className="container mx-auto px-4 py-8">
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate('/products')}
-        className="flex items-center text-gray-600 hover:text-pink-500 mb-6"
-      >
-        <ArrowLeft size={16} className="mr-1" /> Quay lại trang sản phẩm
-      </button>
+      <Header />
+      <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate('/products')}
+          className="flex items-center text-gray-600 hover:text-pink-500 mb-6"
+        >
+          <ArrowLeft size={16} className="mr-1" /> Quay lại trang sản phẩm
+        </button>
 
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="flex flex-col md:flex-row">
-          {/* Product Image */}
-          <div className="md:w-1/2 p-6">
-            <div className="relative">
-              <img 
-                src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
-                alt={product.name}
-                className="w-full h-auto object-cover rounded-lg"
-              />
-              {product.discount > 0 && (
-                <div className="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                  -{product.discount}%
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Product Details */}
-          <div className="md:w-1/2 p-6">
-            <div className="mb-2 text-sm text-gray-500">{product.category}</div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
-            
-            {/* Price */}
-            <div className="flex items-center mb-6">
-              {product.discount > 0 && (
-                <span className="text-gray-400 line-through text-lg mr-3">
-                  {product.price.toLocaleString('vi-VN')}đ
-                </span>
-              )}
-              <span className="font-bold text-pink-500 text-2xl">
-                {discountedPrice.toLocaleString('vi-VN')}đ
-              </span>
-            </div>
-
-            {/* Description */}
-            <div className="mb-6">
-              <h3 className="font-medium mb-2 text-gray-700">Mô tả sản phẩm:</h3>
-              <p className="text-gray-600">{product.description}</p>
-            </div>
-
-            {/* Additional Info */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <h3 className="font-medium mb-1 text-gray-700">Danh mục:</h3>
-                <p className="text-gray-600">{product.category}</p>
-              </div>
-              <div>
-                <h3 className="font-medium mb-1 text-gray-700">Tình trạng:</h3>
-                <p className={product.stock > 0 ? "text-green-500" : "text-red-500"}>
-                  {product.stock > 0 ? "Còn hàng" : "Hết hàng"}
-                  {product.stock > 0 && ` (${product.stock})`}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-medium mb-1 text-gray-700">Dịp tặng:</h3>
-                <p className="text-gray-600">{product.occasion || 'Không có thông tin'}</p>
-              </div>
-            </div>
-
-            {/* Quantity Selector */}
-            <div className="flex items-center space-x-6 mb-6">
-              <div className="text-gray-700 font-medium">Số lượng:</div>
-              <div className="flex items-center border border-gray-300 rounded">
-                <button 
-                  onClick={() => handleQuantityChange(-1)}
-                  className="px-3 py-1 text-gray-600 hover:bg-gray-100"
-                  disabled={quantity <= 1}
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="px-6 py-1 border-l border-r border-gray-300">{quantity}</span>
-                <button 
-                  onClick={() => handleQuantityChange(1)}
-                  className="px-3 py-1 text-gray-600 hover:bg-gray-100"
-                  disabled={quantity >= product.stock}
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-4">
-              <button 
-                onClick={handleAddToCart}
-                className={`flex-1 flex items-center justify-center ${
-                  product.stock > 0 
-                    ? 'bg-pink-500 hover:bg-pink-600' 
-                    : 'bg-gray-400 cursor-not-allowed'
-                } text-white py-3 px-4 rounded-lg`}
-                disabled={product.stock <= 0}
-              >
-                <ShoppingCart size={18} className="mr-2" />
-                {product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
-              </button>
-              <button 
-                onClick={toggleWishlist}
-                className="flex items-center justify-center border border-gray-300 hover:border-pink-500 hover:bg-pink-50 p-3 rounded-lg"
-              >
-                <Heart 
-                  size={20} 
-                  className={inWishlist ? "text-pink-500 fill-pink-500" : "text-gray-400"} 
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            {/* Product Image */}
+            <div className="md:w-1/2 p-6">
+              <div className="relative">
+                <img 
+                  src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
+                  alt={product.name}
+                  className="w-full h-auto object-cover rounded-lg"
                 />
-              </button>
+                {product.discount > 0 && (
+                  <div className="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                    -{product.discount}%
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="md:w-1/2 p-6">
+              <div className="mb-2 text-sm text-gray-500">{product.category}</div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
+              
+              {/* Price */}
+              <div className="flex items-center mb-6">
+                {product.discount > 0 && (
+                  <span className="text-gray-400 line-through text-lg mr-3">
+                    {product.price.toLocaleString('vi-VN')}đ
+                  </span>
+                )}
+                <span className="font-bold text-pink-500 text-2xl">
+                  {discountedPrice.toLocaleString('vi-VN')}đ
+                </span>
+              </div>
+
+              {/* Description */}
+              <div className="mb-6">
+                <h3 className="font-medium mb-2 text-gray-700">Mô tả sản phẩm:</h3>
+                <p className="text-gray-600">{product.description}</p>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <h3 className="font-medium mb-1 text-gray-700">Danh mục:</h3>
+                  <p className="text-gray-600">{product.category}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-1 text-gray-700">Tình trạng:</h3>
+                  <p className={product.stock > 0 ? "text-green-500" : "text-red-500"}>
+                    {product.stock > 0 ? "Còn hàng" : "Hết hàng"}
+                    {product.stock > 0 && ` (${product.stock})`}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-1 text-gray-700">Dịp tặng:</h3>
+                  <p className="text-gray-600">{product.occasion || 'Không có thông tin'}</p>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="flex items-center space-x-6 mb-6">
+                <div className="text-gray-700 font-medium">Số lượng:</div>
+                <div className="flex items-center border border-gray-300 rounded">
+                  <button 
+                    onClick={() => handleQuantityChange(-1)}
+                    className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    disabled={quantity <= 1}
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="px-6 py-1 border-l border-r border-gray-300">{quantity}</span>
+                  <button 
+                    onClick={() => handleQuantityChange(1)}
+                    className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    disabled={quantity >= product.stock}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-4">
+                <button 
+                  onClick={handleAddToCart}
+                  className={`flex-1 flex items-center justify-center ${
+                    product.stock > 0 
+                      ? 'bg-pink-500 hover:bg-pink-600' 
+                      : 'bg-gray-400 cursor-not-allowed'
+                  } text-white py-3 px-4 rounded-lg`}
+                  disabled={product.stock <= 0}
+                >
+                  <ShoppingCart size={18} className="mr-2" />
+                  {product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                </button>
+                <button 
+                  onClick={toggleWishlist}
+                  className="flex items-center justify-center border border-gray-300 hover:border-pink-500 hover:bg-pink-50 p-3 rounded-lg"
+                >
+                  <Heart 
+                    size={20} 
+                    className={inWishlist ? "text-pink-500 fill-pink-500" : "text-gray-400"} 
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Product Reviews Component */}
+        <ProductReviews productId={id} />
       </div>
+      <Footer />
+      <ScrollToTop />
     </div>
-    <Footer />
-    <ScrollToTop />
-
-    </div>
-
   );
 };
 

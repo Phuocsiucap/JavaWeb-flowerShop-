@@ -19,8 +19,9 @@ import ProtectedAdminRoute from './components/admin/ProtectedAdminRoute';
 import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
-import AdminOrderListPage from './pages/admin/AdminOrderListPage';
 
+import AdminOrderListPage from './pages/admin/AdminOrderListPage';
+import OrderReviewPage from './pages/OrderReviewPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrdersPage from './pages/admin/OrdersPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
@@ -40,7 +41,8 @@ function App() {
               <Route path="/account" element={<Profile />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<CheckoutPage />} />
-              
+              <Route path="/account/orders" element={<OrderReviewPage />} />
+               <Route path="/account/orders/:id/review" element={<OrderReviewPage />} />
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               
