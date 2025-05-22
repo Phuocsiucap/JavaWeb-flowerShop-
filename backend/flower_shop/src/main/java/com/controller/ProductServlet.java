@@ -1,10 +1,14 @@
 package com.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.dao.ProductDAO;
 import com.dao.ProductDAOImpl;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.http.FileContent;
+import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
+import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.Permission;
+import com.google.gson.Gson;
 import com.model.Product;
 
 import javax.servlet.ServletException;
@@ -12,11 +16,8 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.file.Paths;
-import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 @WebServlet("/products/*")
@@ -29,44 +30,59 @@ public class ProductServlet extends HttpServlet {
     private final ProductDAO productDAO = new ProductDAOImpl();
     private final Gson gson = new Gson();
 
-    // Upload image to ImgBB and return image URL
-    private String uploadToImgBB(Part filePart) throws IOException {
-        String apiKey = "05a48fa961229de8126fbb5798d949fc"; 
+    // Lấy Drive service từ credentials.json
+    private Drive getDriveService() throws IOException {
+        GoogleCredential credential = GoogleCredential.fromStream(
+            getServletContext().getResourceAsStream("/WEB-INF/flowershop-460508-df16ca139d1e.json")
+        ).createScoped(Collections.singleton(DriveScopes.DRIVE));
 
+        return new Drive.Builder(
+            new com.google.api.client.http.javanet.NetHttpTransport(),
+            com.google.api.client.json.jackson2.JacksonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("ProductApp").build();
+    }
+
+    // Upload ảnh lên Google Drive
+    private String uploadToDrive(Part filePart) throws IOException {
         if (filePart == null || filePart.getSize() == 0) return null;
 
-        InputStream inputStream = filePart.getInputStream();
-        byte[] imageBytes = inputStream.readAllBytes();
-        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-        String url = "https://api.imgbb.com/1/upload?key=" + apiKey;
-        String payload = "image=" + URLEncoder.encode(base64Image, "UTF-8");
-
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-        try (OutputStream os = connection.getOutputStream()) {
-            os.write(payload.getBytes());
-        }
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            StringBuilder responseBuilder = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    responseBuilder.append(line);
-                }
+        String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+        java.io.File tempFile = java.io.File.createTempFile("upload-", fileName);
+        try (InputStream input = filePart.getInputStream();
+             OutputStream output = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
             }
-
-            JsonObject json = JsonParser.parseString(responseBuilder.toString()).getAsJsonObject();
-            return json.getAsJsonObject("data").get("url").getAsString();
         }
 
-        return null;
+        Drive driveService = getDriveService();
+
+        File fileMetadata = new File();
+        fileMetadata.setName(fileName);
+
+        
+        String folderId = "12ubEBc-FutgG4UWhSEzazxVCLuOvRaWW";
+        fileMetadata.setParents(Collections.singletonList(folderId));
+
+        FileContent mediaContent = new FileContent(filePart.getContentType(), tempFile);
+        File uploadedFile = driveService.files().create(fileMetadata, mediaContent)
+            .setFields("id").execute();
+
+        // Cho phép xem công khai qua link
+        Permission permission = new Permission()
+            .setType("anyone")
+            .setRole("reader");
+        driveService.permissions().create(uploadedFile.getId(), permission).execute();
+        
+     // Xoá file tạm sau khi upload
+        tempFile.delete();
+        
+        return "https://drive.google.com/thumbnail?id=" + uploadedFile.getId();
     }
+
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -109,7 +125,7 @@ public class ProductServlet extends HttpServlet {
             String occasion = request.getParameter("occasion");
             int stock = Integer.parseInt(request.getParameter("stock"));
 
-            String imageUrl = uploadToImgBB(request.getPart("image"));
+            String imageUrl = uploadToDrive(request.getPart("image"));
 
             Product product = new Product();
             product.setName(name);
@@ -159,7 +175,7 @@ public class ProductServlet extends HttpServlet {
             String occasion = request.getParameter("occasion");
             int stock = Integer.parseInt(request.getParameter("stock"));
 
-            String imageUrl = uploadToImgBB(request.getPart("image"));
+            String imageUrl = uploadToDrive(request.getPart("image"));
             if (imageUrl == null) imageUrl = existingProduct.getImageUrl();
 
             existingProduct.setName(name);

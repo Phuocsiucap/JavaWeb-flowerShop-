@@ -1,6 +1,8 @@
 import React from 'react';
 
 const TopProductsList = ({ products }) => {
+  console.log(products);
+  
   return (
     <div className="bg-white p-4 rounded-lg shadow">
       <h2 className="text-lg font-bold mb-4">Sản phẩm bán chạy</h2>

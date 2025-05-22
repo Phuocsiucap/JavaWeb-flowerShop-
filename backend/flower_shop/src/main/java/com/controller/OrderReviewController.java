@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@WebServlet("/api/ordersreveiw/*")
+@WebServlet("/api/ordersreview/*")
 public class OrderReviewController extends HttpServlet {
     private final OrderReviewService orderReviewService;
     private final ObjectMapper objectMapper;
@@ -39,42 +39,58 @@ public class OrderReviewController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
-        String[] pathParts = pathInfo.split("/");
-        
-        // Path format should be /orderId/reviews or /orderId/reviews/reviewId
-        if (pathParts.length < 3) {
+        if (pathInfo == null || pathInfo.equals("/")) {
             sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        
-        String orderId = pathParts[1];
-        
-        if (pathParts.length == 3 || (pathParts.length == 4 && pathParts[3].isEmpty())) {
-            // Get all reviews for an order
-            List<OrderReview> reviews = orderReviewService.getReviewsByOrderId(orderId);
-            
+
+        String[] pathParts = pathInfo.split("/");
+     // Trường hợp lấy tất cả đánh giá
+        if (pathParts.length == 2 && "all".equals(pathParts[1])) {
+            List<OrderReview> allReviews = orderReviewService.getAllReviews();
+
+            sendJsonResponse(resp, ApiResponse.builder()
+                    .success(true)
+                    .message("All reviews retrieved successfully")
+                    .data(Map.of("reviews", OrderReviewMapper.toMapList(allReviews)))
+                    .build());
+            return;
+        }
+
+        // Trường hợp lấy review của 1 đơn hàng theo orderId
+        // URL: /{orderId}
+        if (pathParts.length == 2) {
+            String orderId = pathParts[1];
+            Optional<OrderReview> reviewOpt = orderReviewService.getReviewById(orderId);
+
+            if (reviewOpt.isPresent()) {
+                sendJsonResponse(resp, ApiResponse.builder()
+                        .success(true)
+                        .message("Review retrieved successfully")
+                        .data(Map.of("review", OrderReviewMapper.toMap(reviewOpt.get())))
+                        .build());
+            } else {
+                sendErrorResponse(resp, "Review not found for orderId: " + orderId, HttpServletResponse.SC_NOT_FOUND);
+            }
+            return;
+        }
+
+        // Trường hợp lấy tất cả review theo productId
+        // URL: /product/{productId}
+        if (pathParts.length == 3 && "product".equals(pathParts[1])) {
+            String productId = pathParts[2];
+            // Lấy list review theo productId từ service
+            List<OrderReview> reviews = orderReviewService.getReviewsByProductId(productId);
+
             sendJsonResponse(resp, ApiResponse.builder()
                     .success(true)
                     .message("Reviews retrieved successfully")
                     .data(Map.of("reviews", OrderReviewMapper.toMapList(reviews)))
                     .build());
-        } else if (pathParts.length == 4) {
-            // Get specific review by ID
-            String reviewId = pathParts[3];
-            Optional<OrderReview> review = orderReviewService.getReviewById(reviewId);
-            
-            if (review.isPresent()) {
-                sendJsonResponse(resp, ApiResponse.builder()
-                        .success(true)
-                        .message("Review retrieved successfully")
-                        .data(Map.of("review", OrderReviewMapper.toMap(review.get())))
-                        .build());
-            } else {
-                sendErrorResponse(resp, "Review not found", HttpServletResponse.SC_NOT_FOUND);
-            }
-        } else {
-            sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
+
+        sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
     }
 
     @Override

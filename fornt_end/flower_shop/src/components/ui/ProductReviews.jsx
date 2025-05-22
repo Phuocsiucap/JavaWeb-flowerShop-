@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp, MessageCircle, Send } from 'lucide-react';
+import axios from '../../axiosInstance'
 
 const ProductReviews = ({ productId }) => {
   const [reviews, setReviews] = useState([]);
@@ -15,50 +16,36 @@ const ProductReviews = ({ productId }) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
+    const fetchReviews = async () => {      try {
         setLoading(true);
-        // Replace with your actual API endpoint
-        // const response = await fetch(`http://localhost:8080/flower_shop/products/${productId}/reviews`);
+        // Sử dụng API để lấy đánh giá theo productId
+        const response = await axios(`/api/ordersreview/product/${productId}`);
         
-        // if (!response.ok) {
-        //   throw new Error('Không thể tải đánh giá');
-        // }
+        if (response.data.success && response.data.data.reviews) {
+          // Convert the reviews object to an array and format the data
+          const reviewsData = Object.values(response.data.data.reviews).map(review => ({
+            id: review.id,
+            name: review.name,
+            avatar: null,
+            rating: review.overallRating,
+            date: review.date,
+            comment: review.comment,
+            likes: review.likes || 0,
+            email: review.email,
+            orderId: review.orderId,
+            deliveryRating: review.deliveryRating,
+            packagingRating: review.packagingRating
+          }));
+          
+          setReviews(reviewsData);
+        } else {
+          // Fallback khi API không trả về dữ liệu đúng định dạng
+          setReviews([]);
+        }
         
-        // Normally you'd get this from the API, but for demo purposes:
-        const demoReviews = [
-          {
-            id: 1,
-            name: "Nguyễn Văn A",
-            avatar: null,
-            rating: 5,
-            date: "2025-04-10",
-            comment: "Hoa rất tươi và được gói cẩn thận. Người nhận rất thích món quà này!",
-            likes: 3
-          },
-          {
-            id: 2,
-            name: "Trần Thị B",
-            avatar: null,
-            rating: 4,
-            date: "2025-04-05",
-            comment: "Sản phẩm đẹp, giao hàng nhanh. Chỉ tiếc là thiếu một bông hoa so với mô tả.",
-            likes: 1
-          },
-          {
-            id: 3,
-            name: "Lê Văn C",
-            avatar: null,
-            rating: 5,
-            date: "2025-03-28",
-            comment: "Tuyệt vời! Đã mua nhiều lần và chưa bao giờ thất vọng. Sẽ quay lại mua tiếp.",
-            likes: 5
-          }
-        ];
-        
-        setReviews(demoReviews);
         setLoading(false);
       } catch (err) {
+        console.error("Error fetching reviews:", err);
         setError('Đã xảy ra lỗi khi tải đánh giá. Vui lòng thử lại sau.');
         setLoading(false);
       }
@@ -93,57 +80,90 @@ const ProductReviews = ({ productId }) => {
     try {
       setSubmitting(true);
       
-      // Normally you'd post to your API here
-      // const response = await fetch(`http://localhost:8080/flower_shop/products/${productId}/reviews`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(userReview)
-      // });
-      
-      // if (!response.ok) throw new Error('Không thể gửi đánh giá');
-      
-      // For demo, simulate successful submission
-      const newReview = {
-        id: reviews.length + 1,
+      // Để submit review, cần orderId
+      // Trong thực tế, cần có thông tin về order của người dùng với sản phẩm này
+      // Tạm thời, sử dụng phương thức mẫu
+      const mockOrderId = "mock-order-id"; // Trong thực tế, cần lấy orderId thực từ hệ thống
+        const response = await axios.post(`/api/ordersreview/${mockOrderId}/reviews`, {
         name: userReview.name,
-        avatar: null,
-        rating: userReview.rating,
-        date: new Date().toISOString().split('T')[0],
+        email: userReview.email,
+        overallRating: userReview.rating,
+        deliveryRating: userReview.rating,
+        packagingRating: userReview.rating,
         comment: userReview.comment,
+        date: new Date().toISOString().split('T')[0],
         likes: 0
-      };
-      
-      setReviews([newReview, ...reviews]);
-      setUserReview({
-        rating: 5,
-        comment: '',
-        name: '',
-        email: ''
       });
-      setShowReviewForm(false);
-      setSubmitting(false);
       
-      alert('Cảm ơn bạn đã gửi đánh giá!');
+      if (!response.ok) throw new Error('Không thể gửi đánh giá');
+      
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.review) {
+        // Thêm review mới vào danh sách
+        const newReview = {
+          id: result.data.review.id,
+          name: userReview.name,
+          avatar: null,
+          rating: userReview.rating,
+          date: new Date().toISOString().split('T')[0],
+          comment: userReview.comment,
+          likes: 0
+        };
+        
+        setReviews([newReview, ...reviews]);
+        setUserReview({
+          rating: 5,
+          comment: '',
+          name: '',
+          email: ''
+        });
+        setShowReviewForm(false);
+        alert('Cảm ơn bạn đã gửi đánh giá!');
+      } else {
+        alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
+      }
+      
+      setSubmitting(false);
     } catch (err) {
+      console.error("Error submitting review:", err);
       alert('Không thể gửi đánh giá. Vui lòng thử lại sau.');
       setSubmitting(false);
     }
   };
 
   const handleLikeReview = async (reviewId) => {
-    // Update likes locally for demo
-    setReviews(reviews.map(review => 
-      review.id === reviewId ? {...review, likes: review.likes + 1} : review
-    ));
-    
-    // In a real app, you'd send a request to your API
-    // try {
-    //   await fetch(`http://localhost:8080/flower_shop/reviews/${reviewId}/like`, {
-    //     method: 'POST'
-    //   });
-    // } catch (err) {
-    //   console.error('Error liking review:', err);
-    // }
+    try {
+      // Sử dụng API để like review
+      // Để like review, cần orderId
+      // Trong thực tế, cần có thông tin về order
+      const mockOrderId = "mock-order-id"; // Trong thực tế, cần lấy orderId thực từ hệ thống
+        const response = await axios.post(`/api/ordersreview/${mockOrderId}/reviews/${reviewId}/like`);
+      
+      if (!response.ok) {
+        throw new Error('Không thể thích đánh giá');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.review) {
+        // Cập nhật số lượng like trong UI
+        setReviews(reviews.map(review => 
+          review.id === reviewId ? {...review, likes: result.data.review.likes} : review
+        ));
+      } else {
+        // Tạm thời cập nhật UI ngay cả khi không có kết quả từ API
+        setReviews(reviews.map(review => 
+          review.id === reviewId ? {...review, likes: review.likes + 1} : review
+        ));
+      }
+    } catch (err) {
+      console.error("Error liking review:", err);
+      // Tạm thời cập nhật UI ngay cả khi có lỗi
+      setReviews(reviews.map(review => 
+        review.id === reviewId ? {...review, likes: review.likes + 1} : review
+      ));
+    }
   };
   
   const getAverageRating = () => {
@@ -170,6 +190,32 @@ const ProductReviews = ({ productId }) => {
         onClick={interactive ? () => handleRatingChange(index + 1) : undefined}
       />
     ));
+  };
+
+  // Render additional ratings if available
+  const renderAdditionalRatings = (review) => {
+    if (!review.deliveryRating && !review.packagingRating) return null;
+    
+    return (
+      <div className="mt-2 text-sm text-gray-500">
+        {review.deliveryRating && (
+          <div className="flex items-center">
+            <span className="mr-2">Giao hàng:</span>
+            <div className="flex">
+              {renderStars(review.deliveryRating)}
+            </div>
+          </div>
+        )}
+        {review.packagingRating && (
+          <div className="flex items-center mt-1">
+            <span className="mr-2">Đóng gói:</span>
+            <div className="flex">
+              {renderStars(review.packagingRating)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -335,7 +381,10 @@ const ProductReviews = ({ productId }) => {
                 </div>
               </div>
               
-              <div className="text-gray-700 mb-3">{review.comment}</div>
+              {/* Render additional ratings for delivery and packaging */}
+              {renderAdditionalRatings(review)}
+              
+              <div className="text-gray-700 mb-3 mt-2">{review.comment}</div>
               
               <button 
                 onClick={() => handleLikeReview(review.id)}

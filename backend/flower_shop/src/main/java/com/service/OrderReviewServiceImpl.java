@@ -17,11 +17,7 @@ public class OrderReviewServiceImpl implements OrderReviewService {
         this.orderReviewDao = orderReviewDao;
     }
 
-    @Override
-    public List<OrderReview> getReviewsByOrderId(String orderId) {
-        return orderReviewDao.getReviewsByOrderId(orderId);
-    }
-
+    
     @Override
     public Optional<OrderReview> getReviewById(String id) {
         return orderReviewDao.getReviewById(id);
@@ -49,32 +45,44 @@ public class OrderReviewServiceImpl implements OrderReviewService {
         return orderReviewDao.incrementLikes(reviewId);
     }
 
+//    @Override
+//    public double getAverageRating(String orderId, String ratingField) {
+//        List<OrderReview> reviews = getReviewsByOrderId(orderId);
+//        
+//        if (reviews.isEmpty()) {
+//            return 0.0;
+//        }
+//        
+//        double sum = 0.0;
+//        
+//        for (OrderReview review : reviews) {
+//            switch (ratingField) {
+//                case "overallRating":
+//                    sum += review.getOverallRating();
+//                    break;
+//                case "deliveryRating":
+//                    sum += review.getDeliveryRating();
+//                    break;
+//                case "packagingRating":
+//                    sum += review.getPackagingRating();
+//                    break;
+//                default:
+//                    sum += review.getOverallRating();
+//            }
+//        }
+//        
+//        return sum / reviews.size();
+//    }
+//    
+    
     @Override
-    public double getAverageRating(String orderId, String ratingField) {
-        List<OrderReview> reviews = getReviewsByOrderId(orderId);
-        
-        if (reviews.isEmpty()) {
-            return 0.0;
-        }
-        
-        double sum = 0.0;
-        
-        for (OrderReview review : reviews) {
-            switch (ratingField) {
-                case "overallRating":
-                    sum += review.getOverallRating();
-                    break;
-                case "deliveryRating":
-                    sum += review.getDeliveryRating();
-                    break;
-                case "packagingRating":
-                    sum += review.getPackagingRating();
-                    break;
-                default:
-                    sum += review.getOverallRating();
-            }
-        }
-        
-        return sum / reviews.size();
+    public List<OrderReview> getReviewsByProductId(String productId) {
+        // Gọi dao để lấy review của tất cả order có productId
+        return orderReviewDao.findReviewsByProductId(productId);
     }
+    
+    public List<OrderReview> getAllReviews() {
+        return orderReviewDao.getAllReviews();
+    }
+
 }

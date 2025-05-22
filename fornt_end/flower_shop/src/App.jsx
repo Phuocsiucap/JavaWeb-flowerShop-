@@ -20,7 +20,7 @@ import HomeAdmin from './pages/admin/HomeAdmin';
 import UsersManagement from './pages/admin/UsersManagementPage';
 import AdminLogin from './pages/admin/AdminLogin';
 
-import AdminOrderListPage from './pages/admin/AdminOrderListPage';
+
 import OrderReviewPage from './pages/OrderReviewPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrdersPage from './pages/admin/OrdersPage';
@@ -42,7 +42,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/account/orders" element={<OrderReviewPage />} />
-               <Route path="/account/orders/:id/review" element={<OrderReviewPage />} />
+              <Route path="/order/:id/review" element={<OrderReviewPage />} />
               <Route path="/products" element={<ProductPage />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               

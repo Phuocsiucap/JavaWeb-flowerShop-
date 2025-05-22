@@ -26,7 +26,7 @@ function ProductCard({ product, toggleWishlist }) {
       {/* Product Image */}
       <div className="relative">
         <img
-          src={`${BASE_URL}${product.imageUrl}`|| '/placeholder.jpg'}
+          src= {product.imageUrl}
           alt={product.name}
           className="w-full h-64 object-cover"
         />

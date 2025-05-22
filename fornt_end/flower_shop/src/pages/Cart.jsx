@@ -23,6 +23,18 @@ const Cart = () => {
     });
   };
 
+  // Hàm xử lý chọn/bỏ chọn tất cả item
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedItems(cartItems.map(item => item.productId));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  // Hàm kiểm tra đã chọn hết chưa
+  const isAllSelected = cartItems.length > 0 && selectedItems.length === cartItems.length;
+
   // Hàm tính tổng tiền các item được chọn
   const calculateSelectedTotal = () => {
     return cartItems
@@ -38,6 +50,18 @@ const Cart = () => {
     }
     const checkoutItems = cartItems.filter(item => selectedItems.includes(item.productId));
     navigate('/checkout', { state: { items: checkoutItems } });
+  };
+
+  // Hàm xử lý xóa toàn bộ giỏ hàng hoặc chỉ các sản phẩm đã chọn
+  const handleClearCart = () => {
+    if (selectedItems.length === 0) {
+      // Hiển thị thông báo nếu không tick chọn sản phẩm nào
+      alert('Vui lòng chọn ít nhất một sản phẩm để xóa hoặc tick chọn để xóa toàn bộ.');
+      return;
+    } else {
+      selectedItems.forEach(id => removeFromCart(id));
+      setSelectedItems([]);
+    }
   };
 
   if (cartItems.length === 0) {
@@ -69,6 +93,17 @@ const Cart = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flow-root">
             <ul className="-my-6 divide-y divide-gray-200">
+              <li className="py-2 flex items-center">
+                <div className="flex items-center h-6 mr-4">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Chọn tất cả</span>
+                </div>
+              </li>
               {cartItems.map((item) => (
                 <li key={item.productId} className="py-6 flex items-center">
                   <div className="flex items-center h-24 mr-4">
@@ -81,7 +116,7 @@ const Cart = () => {
                   </div>
                   <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
                     <img                
-                      src={`${BASE_URL}${item.imageUrl}`|| '/placeholder.jpg'}
+                      src={item.imageUrl || '/placeholder.jpg'}
                       alt={item.name}
                       className="w-full h-full object-center object-cover"
                     />
@@ -144,10 +179,10 @@ const Cart = () => {
               </button>
               
               <button
-                onClick={clearCart}
+                onClick={handleClearCart}
                 className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none"
               >
-                Xóa giỏ hàng
+                {selectedItems.length === 0 ? 'Xóa giỏ hàng' : 'Xóa sản phẩm đã chọn'}
               </button>
             </div>
           </div>

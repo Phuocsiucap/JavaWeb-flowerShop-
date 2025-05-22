@@ -14,19 +14,17 @@ public class OrderReviewDao {
     private Connection getConnection() throws SQLException {
         return DatabaseConnection.getConnection();
     }
-
-    public List<OrderReview> getReviewsByOrderId(String orderId) {
+    
+    public List<OrderReview> getAllReviews() {
         List<OrderReview> reviews = new ArrayList<>();
-        
-        try (Connection conn = getConnection()) {
-            PreparedStatement stmt = conn.prepareStatement(
-                "SELECT * FROM order_review WHERE order_id = ? ORDER BY date DESC"
-            );
-            stmt.setString(1, orderId);
-            
-            ResultSet rs = stmt.executeQuery();
+        String sql = "SELECT * FROM order_review ORDER BY date DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            
+
             while (rs.next()) {
                 OrderReview review = new OrderReview();
                 review.setId(rs.getString("id"));
@@ -39,25 +37,26 @@ public class OrderReviewDao {
                 try {
                     review.setDate(dateFormat.parse(rs.getString("date")));
                 } catch (ParseException e) {
-                    // Handle parse exception
+                    review.setDate(null);
                 }
                 review.setComment(rs.getString("comment"));
                 review.setLikes(rs.getInt("likes"));
-                
+
                 reviews.add(review);
             }
-            
+
         } catch (SQLException e) {
-            // Handle SQL exception
             e.printStackTrace();
         }
-        
+
         return reviews;
     }
 
+    
+
     public Optional<OrderReview> getReviewById(String id) {
         try (Connection conn = getConnection()) {
-            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM order_review WHERE id = ?");
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM order_review WHERE order_id = ?");
             stmt.setString(1, id);
             
             ResultSet rs = stmt.executeQuery();
@@ -142,4 +141,51 @@ public class OrderReviewDao {
             return false;
         }
     }
+    
+    public List<OrderReview> findReviewsByProductId(String productId) {
+        List<OrderReview> reviews = new ArrayList<>();
+
+        String sql = "SELECT r.* FROM order_review r " +
+                     "JOIN orders o ON r.order_id = o.orderId " +
+                     "JOIN orderitem i ON o.orderId = i.orderId " +
+                     "WHERE i.productId = ? " +
+                     "ORDER BY r.date DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, productId);
+
+            ResultSet rs = stmt.executeQuery();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+            while (rs.next()) {
+                OrderReview review = new OrderReview();
+                review.setId(rs.getString("id"));
+                review.setOrderId(rs.getString("order_id"));
+                review.setName(rs.getString("name"));
+                review.setEmail(rs.getString("email"));
+                review.setOverallRating(rs.getInt("overall_rating"));
+                review.setDeliveryRating(rs.getInt("delivery_rating"));
+                review.setPackagingRating(rs.getInt("packaging_rating"));
+                try {
+                    review.setDate(dateFormat.parse(rs.getString("date")));
+                } catch (ParseException e) {
+                    // Nếu lỗi parse thì set null hoặc date mặc định
+                    review.setDate(null);
+                }
+                review.setComment(rs.getString("comment"));
+                review.setLikes(rs.getInt("likes"));
+
+                reviews.add(review);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reviews;
+    }
+
+
 }

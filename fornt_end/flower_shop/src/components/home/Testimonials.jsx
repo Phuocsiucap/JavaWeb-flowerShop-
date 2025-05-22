@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import axios from 'axios';
 
 const Testimonials = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [testimonials, setTestimonials] = useState([]);
 
-  const testimonials = [
-    {
-      id: 1,
-      name: "Nguyễn Thị Mai",
-      role: "Khách hàng",
-      content: "Dịch vụ hoa của FlowerShop rất tuyệt vời! Hoa luôn tươi đẹp và giao nhanh chóng.",
-      avatar: "/images/testimonial1.jpg"
-    },
-    {
-      id: 2,
-      name: "Trần Minh Tú",
-      role: "Khách hàng",
-      content: "Hoa tươi lâu và chất lượng tuyệt vời. Tôi sẽ tiếp tục mua ở đây.",
-      avatar: "/images/testimonial2.jpg"
-    },
-    {
-      id: 3,
-      name: "Lê Quang Huy",
-      role: "Khách hàng",
-      content: "Rất ấn tượng với dịch vụ giao hàng nhanh và hoa đẹp. Cảm ơn FlowerShop!",
-      avatar: "/images/testimonial3.jpg"
-    },
-    // Add more testimonials as needed
-  ];
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const response = await axios.get('/api/ordersreveiw/all');
+        if (response.data.success) {
+          const reviews = response.data.data.reviews;
+
+          // Convert to structure matching frontend display
+          const formatted = reviews.map((r) => ({
+            id: r.id,
+            name: r.userFullName || 'Người dùng ẩn danh',
+            role: 'Khách hàng',
+            content: r.content,
+            avatar: r.userAvatar || '/images/default-avatar.jpg'
+          }));
+          setTestimonials(formatted);
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy đánh giá:', error);
+      }
+    };
+
+    fetchTestimonials();
+  }, []);
 
   const nextTestimonial = () => {
     setCurrentTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
@@ -36,6 +38,10 @@ const Testimonials = () => {
   const prevTestimonial = () => {
     setCurrentTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
   };
+
+  if (testimonials.length === 0) {
+    return <div className="text-center py-10 text-gray-500">Chưa có đánh giá nào.</div>;
+  }
 
   return (
     <section className="bg-gray-100 py-16">

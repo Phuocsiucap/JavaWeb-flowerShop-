@@ -27,7 +27,7 @@ public class CheckoutServlet extends HttpServlet {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderDAO orderDAO = new OrderDAO();
     private final ProductDAO productDAO = new ProductDAOImpl();
-    private final AuthService authService = new AuthServiceImpl(new UserDao());
+    private final AuthService authService = new AuthServiceImpl(new UserDao(), null);
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)

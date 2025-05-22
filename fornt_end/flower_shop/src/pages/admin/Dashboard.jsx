@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Users, ShoppingBag, FileText, Settings, Package, TrendingUp } from 'lucide-react';
 import AppLayout from '../../components/admin/Layout';
@@ -9,7 +9,6 @@ import TopProductsList from '../../components/admin/dashboard/TopProductsList';
 import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTable';
 import StatsGrid from '../../components/admin/dashboard/StatsGrid';
 import axios from '../../axiosInstance';
-import { AuthContext } from '../../contexts/AuthContext';
 
 const Dashboard = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -27,9 +26,18 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const { getAllUsers, getAllOrders, getUserById, adminToken } = useAdmin();
-  const { getOrderItems } = useContext(AuthContext);
 
-  const formatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+  const getDetailOrder = async (token, id) => {
+    try {
+      const res = await axios.get(`api/orders/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.data.order; // Expecting order with items array
+    } catch (error) {
+      console.error(`Error fetching order ${id}:`, error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const fetchUsersData = async () => {
@@ -88,15 +96,13 @@ const Dashboard = () => {
         // Fetch detailed order data including items
         const detailedOrders = await Promise.all(
           orders.map(async (order) => {
-            const orderItems = await getOrderItems(adminToken, order.orderId);
-            if (!orderItems || orderItems.length === 0) return null;
+            const detailedOrder = await getDetailOrder(adminToken, order.orderId);
+            if (!detailedOrder) return null;
             const customer = order.userId ? await getUserById(order.userId) : null;
             return {
-              orderId: order.orderId,
-              orderDate: order.orderDate,
-              totalAmount: order.totalAmount,
-              status: order.status,
-              items: orderItems,
+              ...detailedOrder,
+              createdAt: new Date(detailedOrder.orderDate),
+              totalPrice: detailedOrder.totalAmount,
               customer,
             };
           })
@@ -107,51 +113,50 @@ const Dashboard = () => {
 
         // Orders today and yesterday
         const ordersTodayList = mappedOrders.filter((order) => {
-          const createdAt = new Date(order.orderDate);
+          const createdAt = new Date(order.createdAt);
           return createdAt >= startOfToday && createdAt <= endOfToday;
         });
         const ordersYesterdayList = mappedOrders.filter((order) => {
-          const createdAt = new Date(order.orderDate);
+          const createdAt = new Date(order.createdAt);
           return createdAt >= startOfYesterday && createdAt <= endOfYesterday;
         });
         setOrdersToday(ordersTodayList.length);
         setOrdersYesterday(ordersYesterdayList.length);
 
         // Revenue today and yesterday
-        setRevenueToday(ordersTodayList.reduce((sum, order) => sum + (order.totalAmount || 0), 0));
-        setRevenueYesterday(ordersYesterdayList.reduce((sum, order) => sum + (order.totalAmount || 0), 0));
+        setRevenueToday(ordersTodayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
+        setRevenueYesterday(ordersYesterdayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
 
         // Products sold today and yesterday
         setProductsSoldToday(
           ordersTodayList.reduce(
-            (sum, order) => sum + (order.items.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            (sum, order) =>
+              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
             0
           )
         );
         setProductsSoldYesterday(
           ordersYesterdayList.reduce(
-            (sum, order) => sum + (order.items.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            (sum, order) =>
+              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
             0
           )
         );
 
         // Recent orders
         const recentOrdersList = mappedOrders
-          .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
-          .slice(0, 10);
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 10); // Limit to 10 for performance
         setRecentOrders(recentOrdersList);
 
         // Top products
         const productSales = {};
         const productNames = {};
-        const productPrices = {}; // New map to store total price per product
         mappedOrders.forEach((order) => {
-          if (order.items && Array.isArray(order.items)) {
+          if (order.items) {
             order.items.forEach((item) => {
               productSales[item.productId] = (productSales[item.productId] || 0) + (item.quantity || 0);
               productNames[item.productId] = item.productName || `Sản phẩm ${item.productId}`;
-              // Calculate total price for each product (quantity * price)
-              productPrices[item.productId] = (productPrices[item.productId] || 0) + (item.quantity * item.price || 0);
             });
           }
         });
@@ -159,22 +164,14 @@ const Dashboard = () => {
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
           .map(([id]) => id);
-
-        // Debug logging
-        console.log('Product Sales:', productSales);
-        console.log('Top Product IDs:', topProductIds);
-
         const topProductsList = topProductIds.map((id) => ({
           id,
-          name: productNames[id] || `Sản phẩm ${id}`,
-          sold: productSales[id] ?? 0,
-          price: productPrices[id] / (productSales[id] || 1) || 0, // Average price per unit
+          name: productNames[id],
+          sold: productSales[id],
           imageUrl: mappedOrders
             .flatMap((order) => order.items || [])
-            .find((item) => item.productId === id)?.imageUrl || '',
+            .find((item) => item.productId === id)?.imageUrl,
         }));
-
-        console.log('Top Products List:', topProductsList);
         setTopProducts(topProductsList);
       } catch (error) {
         console.error('Error fetching orders data:', error);
@@ -196,7 +193,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [adminToken, getAllUsers, getAllOrders, getUserById, getOrderItems]);
+  }, [adminToken, getAllUsers, getAllOrders, getUserById]);
 
   const stats = [
     {
@@ -217,7 +214,7 @@ const Dashboard = () => {
     },
     {
       title: 'Doanh thu',
-      value: formatter.format(revenueToday),
+      value: `₫${revenueToday.toLocaleString()}`,
       change: revenueYesterday > 0
         ? `${((revenueToday - revenueYesterday) / revenueYesterday * 100).toFixed(1)}%`
         : '0%',

@@ -22,7 +22,7 @@ import java.util.Optional;
 @WebServlet("/api/cart/update/*")
 public class UpdateCartServlet extends CartController {
     private static final long serialVersionUID = 1L;
-    private static final AuthService authService = new AuthServiceImpl(new UserDao());
+    private static final AuthService authService = new AuthServiceImpl(new UserDao(), null);
     private static final CartDAO cartDAO = new CartDAO();
     private static final ProductDAO productDAO = new ProductDAOImpl();
     private final ObjectMapper objectMapper = new ObjectMapper();
