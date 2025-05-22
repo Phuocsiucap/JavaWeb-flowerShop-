@@ -31,7 +31,7 @@ public class AuthServlet extends HttpServlet {
     private final ObjectMapper objectMapper;
 
     public AuthServlet() {
-        this.authService = new AuthServiceImpl(new UserDao());
+        this.authService = new AuthServiceImpl(new UserDao(), null);
         this.objectMapper = new ObjectMapper();
     }
     @Override

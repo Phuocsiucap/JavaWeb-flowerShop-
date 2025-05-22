@@ -29,7 +29,7 @@ import java.util.Optional;
 @WebServlet("/api/cart")
 public class GetCartServlet extends CartController {
     private static final long serialVersionUID = 1L;
-    private static final AuthService authService = new AuthServiceImpl(new UserDao());
+    private static final AuthService authService = new AuthServiceImpl(new UserDao(), null);
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("application/json");
