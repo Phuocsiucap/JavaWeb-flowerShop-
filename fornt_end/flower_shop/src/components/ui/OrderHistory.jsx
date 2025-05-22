@@ -97,7 +97,7 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                   Order ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  Ngày đặt
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
@@ -131,14 +131,21 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                       }`}>
                         {order.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-2">
+                    </td>                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-4">
                       <button
                         onClick={() => handleViewDetails(order.id)}
                         className="hover:text-emerald-800"
                       >
                         {selectedOrderId === order.id ? 'Close Details' : 'View Details'}
                       </button>
+                      {order.status === 'Thành công' && (
+                        <Link
+                          to={`/order/${order.id}/review`}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          Đánh giá
+                        </Link>
+                      )}
                     </td>
                   </tr>
                   {selectedOrderId === order.id && (
@@ -182,27 +189,32 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                               )}
                             </tbody>
                           </table>
-                          {/* Hiển thị nút chỉ khi trạng thái là Đang xử lý */}
-                          {order.status === 'Đang xử lý' && (
-                            <div className="mt-4 flex space-x-4">
-                              <button
-                                onClick={() => handleUpdateStatus(order.id, 'Success')}
-                                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
-                                disabled={false}
-                                title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
+                          <div className="mt-4 flex space-x-4">
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'Success')}
+                              className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+                              disabled={false}
+                              title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
+                            >
+                              Thanh toán
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
+                              className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+                              disabled={false}
+                              title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
+                            >
+                              Hủy đơn hàng
+                            </button>
+                            {order.status === 'Thành công' && (
+                              <Link
+                                to={`/order/${order.id}/review`}
+                                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
                               >
-                                Thanh toán
-                              </button>
-                              <button
-                                onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
-                                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                                disabled={false}
-                                title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
-                              >
-                                Hủy đơn hàng
-                              </button>
-                            </div>
-                          )}
+                                Đánh giá
+                              </Link>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

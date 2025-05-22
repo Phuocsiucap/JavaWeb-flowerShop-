@@ -36,7 +36,7 @@ const AdminOrderDetailPage = () => {
     
     setUpdating(true);
     try {
-      await axios.patch(`/api/admin/orders/${id}`, { status: newStatus });
+      await axios.patch(`/api/orders/${id}`, { status: newStatus });
       setStatus(newStatus);
       setOrder(prevOrder => ({ ...prevOrder, status: newStatus }));
       
