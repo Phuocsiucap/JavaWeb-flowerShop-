@@ -1,6 +1,8 @@
 package com.controller;
 
 import com.dto.request.RevenueDTO;
+import com.dto.request.TopCustomerDTO;
+import com.dto.request.BestSellerDTO;
 import com.service.RevenueService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -31,8 +33,17 @@ public class RevenueController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         try {
             List<RevenueDTO> revenueList = revenueService.getRevenueReport();
+            List<TopCustomerDTO> topCustomers = revenueService.getTopCustomersOfWeek();
+            BestSellerDTO bestSeller = revenueService.getBestSellerOfWeek();
+
+            // Gộp kết quả vào 1 object
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("revenue", revenueList);
+            result.put("topCustomers", topCustomers);
+            result.put("bestSeller", bestSeller);
+
             response.setStatus(HttpServletResponse.SC_OK);
-            objectMapper.writeValue(response.getWriter(), revenueList);
+            objectMapper.writeValue(response.getWriter(), result);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             objectMapper.writeValue(response.getWriter(), Collections.singletonMap("error", e.getMessage()));

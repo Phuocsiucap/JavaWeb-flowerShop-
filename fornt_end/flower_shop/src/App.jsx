@@ -63,7 +63,7 @@ function App() {
                     <Route path="/profile" element={<AdminProfilePage />} />
                     {/* <Route path="/products" element={<ProductsPage />} /> */}
                     <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/orders/:id" element={<OrderDetailPage />} />
+                    {/* <Route path="/orders/:id" element={<OrderDetailPage />} /> */}
                     <Route path="/reports" element={<RevenueReportPage />} />
                     <Route path="/products" element={<ProductsPage />} />
                     <Route path="/customers" element={<UsersManagement />} />

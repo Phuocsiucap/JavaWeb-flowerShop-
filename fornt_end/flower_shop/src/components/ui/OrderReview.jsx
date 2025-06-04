@@ -36,7 +36,7 @@ const OrderReview = ({ orderId }) => {
         setLoading(true);
         
         // Fetch order details
-        const orderResponse = await axiosInstance.get(`/api/orders/${orderId}`, {
+        const orderResponse = await axiosInstance.get(`/api/customer/orders/${orderId}`, {
           headers: {
             'Authorization': `Bearer ${Cookies.get('token')}`
           }

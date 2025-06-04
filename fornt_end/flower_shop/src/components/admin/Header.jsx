@@ -21,7 +21,7 @@ const Header = () => {
     { title: 'Sản phẩm', icon: <Package size={18} />, path: '/admin/products' },
     { title: 'Người dùng', icon: <Users size={18} />, path: '/admin/customers' },
     { title: 'Báo cáo', icon: <FileText size={18} />, path: '/admin/reports' },
-    { title: 'Cài đặt', icon: <Settings size={18} />, path: '/admin/settings' },
+    // { title: 'Cài đặt', icon: <Settings size={18} />, path: '/admin/settings' },
   ];
 
   const isActive = (path) => {

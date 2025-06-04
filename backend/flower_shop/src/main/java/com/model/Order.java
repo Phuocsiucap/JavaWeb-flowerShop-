@@ -3,6 +3,7 @@ package com.model;
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Order {
     private int orderId;
@@ -16,7 +17,7 @@ public class Order {
     private String phoneNumber;
 
     public Order() {
-        this.items = new ArrayList<>();
+    	this.items = Collections.synchronizedList(new ArrayList<>());
         this.orderDate = new Date();
         this.status = "Pending";
     }

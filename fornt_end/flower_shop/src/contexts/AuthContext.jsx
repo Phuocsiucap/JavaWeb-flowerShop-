@@ -70,96 +70,96 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Lấy danh sách đơn hàng của user
-  const getUserOrders = async () => {
-    try {
-      const token = Cookies.get('token');
-      if (!token || !currentUser?.id) return [];
-      const res = await axios.get(`/api/orders/user/${currentUser.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        return res.data.data.orders.map(order => ({
-          id: order.orderId,
-          date: new Date(order.orderDate).toLocaleDateString('en-CA'),
-          total: order.totalAmount,
-          status: order.status === 'Success' ? 'Thành công' :
-                  order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-      return [];
-    }
-  };
+  // // Lấy danh sách đơn hàng của user
+  // const getUserOrders = async () => {
+  //   try {
+  //     const token = Cookies.get('token');
+  //     if (!token || !currentUser?.id) return [];
+  //     const res = await axios.get(`/api/orders/user/${currentUser.id}`, {
+  //       headers: { Authorization: `Bearer ${token}` }
+  //     });
+  //     if (res.data.success) {
+  //       return res.data.data.orders.map(order => ({
+  //         id: order.orderId,
+  //         date: new Date(order.orderDate).toLocaleDateString('en-CA'),
+  //         total: order.totalAmount,
+  //         status: order.status === 'Success' ? 'Thành công' :
+  //                 order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'
+  //       }));
+  //     }
+  //     return [];
+  //   } catch (error) {
+  //     console.error("Error fetching user orders:", error);
+  //     return [];
+  //   }
+  // };
 
-  // Lấy chi tiết một đơn hàng
-  const getDetailOrder = async (orderId) => {
-    try {
-      const token = Cookies.get('token');
-      const res = await axios.get(`/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return res.data.data.order || null;
-    } catch (error) {
-      console.error("Error fetching order details:", error);
-      return null;
-    }
-  };
+  // // Lấy chi tiết một đơn hàng
+  // const getDetailOrder = async (orderId) => {
+  //   try {
+  //     const token = Cookies.get('token');
+  //     const res = await axios.get(`/api/orders/${orderId}`, {
+  //       headers: { Authorization: `Bearer ${token}` }
+  //     });
+  //     return res.data.data.order || null;
+  //   } catch (error) {
+  //     console.error("Error fetching order details:", error);
+  //     return null;
+  //   }
+  // };
 
-  // Lấy danh sách sản phẩm trong đơn hàng
-  const getOrderItems = async (orderId) => {
-    try {
-      const token = Cookies.get('token');
-      const res = await axios.get(`/api/orders/${orderId}/items`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return res.data.data.items || [];
-    } catch (error) {
-      console.error("Error fetching order items:", error);
-      return [];
-    }
-  };
+  // // Lấy danh sách sản phẩm trong đơn hàng
+  // const getOrderItems = async (orderId) => {
+  //   try {
+  //     const token = Cookies.get('token');
+  //     const res = await axios.get(`/api/orders/${orderId}/items`, {
+  //       headers: { Authorization: `Bearer ${token}` }
+  //     });
+  //     return res.data.data.items || [];
+  //   } catch (error) {
+  //     console.error("Error fetching order items:", error);
+  //     return [];
+  //   }
+  // };
 
   // Cập nhật trạng thái đơn hàng (chưa hỗ trợ trong servlet, cần thêm logic)
-  const updateOrderStatus = async (orderId, newStatus) => {
-  try {
-    const token = Cookies.get('token');
-    const res = await axios.post(`/api/orders/${orderId}?status=${newStatus}`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.data.success) {
-      await getUserOrders();
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error updating order status:", error);
-    return false;
-  }
-};
+//   const updateOrderStatus = async (orderId, newStatus) => {
+//   try {
+//     const token = Cookies.get('token');
+//     const res = await axios.post(`/api/orders/${orderId}?status=${newStatus}`, {}, {
+//       headers: { Authorization: `Bearer ${token}` }
+//     });
+//     if (res.data.success) {
+//       await getUserOrders();
+//       return true;
+//     }
+//     return false;
+//   } catch (error) {
+//     console.error("Error updating order status:", error);
+//     return false;
+//   }
+// };
 
-  // Xóa đơn hàng (chỉ admin, cần kiểm tra role)
-  const deleteOrder = async (orderId) => {
-    try {
-      const token = Cookies.get('token');
-      if (!currentUser || currentUser.role !== 'admin') {
-        throw new Error('Chỉ admin có quyền xóa đơn hàng');
-      }
-      const res = await axios.delete(`/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        await getUserOrders(); // Cập nhật lại danh sách
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Error deleting order:", error);
-      return false;
-    }
-  };
+  // // Xóa đơn hàng (chỉ admin, cần kiểm tra role)
+  // const deleteOrder = async (orderId) => {
+  //   try {
+  //     const token = Cookies.get('token');
+  //     if (!currentUser || currentUser.role !== 'admin') {
+  //       throw new Error('Chỉ admin có quyền xóa đơn hàng');
+  //     }
+  //     const res = await axios.delete(`/api/orders/${orderId}`, {
+  //       headers: { Authorization: `Bearer ${token}` }
+  //     });
+  //     if (res.data.success) {
+  //       await getUserOrders(); // Cập nhật lại danh sách
+  //       return true;
+  //     }
+  //     return false;
+  //   } catch (error) {
+  //     console.error("Error deleting order:", error);
+  //     return false;
+  //   }
+  // };
 
   const value = {
     currentUser,
@@ -169,11 +169,11 @@ export const AuthProvider = ({ children }) => {
     logout,
     forgotPassword,
     updateUserProfile,
-    getUserOrders,
-    getDetailOrder,
-    getOrderItems,
-    updateOrderStatus,
-    deleteOrder
+    // getUserOrders,
+    // getDetailOrder,
+    // getOrderItems,
+    // updateOrderStatus,
+    // deleteOrder
   };
 
   return (

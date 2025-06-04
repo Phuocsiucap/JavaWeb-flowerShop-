@@ -27,18 +27,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const { getAllUsers, getAllOrders, getUserById, adminToken } = useAdmin();
 
-  const getDetailOrder = async (token, id) => {
-    try {
-      const res = await axios.get(`api/orders/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.data.data.order; // Expecting order with items array
-    } catch (error) {
-      console.error(`Error fetching order ${id}:`, error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
@@ -89,27 +77,20 @@ const Dashboard = () => {
         const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
         const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
 
-        // Fetch all orders (basic data)
-        const ordersResponse = await getAllOrders();
-        const orders = ordersResponse;
-
-        // Fetch detailed order data including items
-        const detailedOrders = await Promise.all(
+        // Fetch all orders (đã có đủ items từ API mới)
+        const orders = await getAllOrders();
+        // Map lại cho đúng format
+        const mappedOrders = await Promise.all(
           orders.map(async (order) => {
-            const detailedOrder = await getDetailOrder(adminToken, order.orderId);
-            if (!detailedOrder) return null;
             const customer = order.userId ? await getUserById(order.userId) : null;
             return {
-              ...detailedOrder,
-              createdAt: new Date(detailedOrder.orderDate),
-              totalPrice: detailedOrder.totalAmount,
+              ...order,
+              createdAt: new Date(order.orderDate),
+              totalPrice: order.totalAmount,
               customer,
             };
           })
         );
-
-        // Filter out null orders (failed fetches)
-        const mappedOrders = detailedOrders.filter((order) => order !== null);
 
         // Orders today and yesterday
         const ordersTodayList = mappedOrders.filter((order) => {
@@ -146,7 +127,7 @@ const Dashboard = () => {
         // Recent orders
         const recentOrdersList = mappedOrders
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 10); // Limit to 10 for performance
+          .slice(0, 3); 
         setRecentOrders(recentOrdersList);
 
         // Top products

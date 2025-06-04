@@ -19,7 +19,7 @@ const ProductReviews = ({ productId }) => {
     const fetchReviews = async () => {      try {
         setLoading(true);
         // Sử dụng API để lấy đánh giá theo productId
-        const response = await axios(`/api/ordersreview/product/${productId}`);
+        const response = await axios.get(`/api/ordersreview/product/${productId}`);
         
         if (response.data.success && response.data.data.reviews) {
           // Convert the reviews object to an array and format the data

@@ -38,125 +38,195 @@ public class OrderReviewController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String pathInfo = req.getPathInfo();
-        if (pathInfo == null || pathInfo.equals("/")) {
-            sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+        // Thiết lập các header CORS
+        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
 
-        String[] pathParts = pathInfo.split("/");
-     // Trường hợp lấy tất cả đánh giá
-        if (pathParts.length == 2 && "all".equals(pathParts[1])) {
-            List<OrderReview> allReviews = orderReviewService.getAllReviews();
+        try {
+            String pathInfo = req.getPathInfo();
+            if (pathInfo == null || pathInfo.equals("/")) {
+                sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
 
-            sendJsonResponse(resp, ApiResponse.builder()
-                    .success(true)
-                    .message("All reviews retrieved successfully")
-                    .data(Map.of("reviews", OrderReviewMapper.toMapList(allReviews)))
-                    .build());
-            return;
-        }
+            String[] pathParts = pathInfo.substring(1).split("/");
 
-        // Trường hợp lấy review của 1 đơn hàng theo orderId
-        // URL: /{orderId}
-        if (pathParts.length == 2) {
-            String orderId = pathParts[1];
-            Optional<OrderReview> reviewOpt = orderReviewService.getReviewById(orderId);
-
-            if (reviewOpt.isPresent()) {
+            // Trường hợp lấy tất cả đánh giá
+            if (pathParts.length == 1 && "all".equals(pathParts[0])) {
+                String userId = (String) req.getAttribute("userId");
+                if (userId == null) {
+                    sendErrorResponse(resp, "Không tìm thấy thông tin người dùng từ token", HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                List<OrderReview> allReviews = orderReviewService.getAllReviews();
                 sendJsonResponse(resp, ApiResponse.builder()
                         .success(true)
-                        .message("Review retrieved successfully")
-                        .data(Map.of("review", OrderReviewMapper.toMap(reviewOpt.get())))
+                        .message("All reviews retrieved successfully")
+                        .data(Map.of("reviews", OrderReviewMapper.toMapList(allReviews)))
                         .build());
-            } else {
-                sendErrorResponse(resp, "Review not found for orderId: " + orderId, HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
-            return;
+
+            // Trường hợp lấy review của 1 đơn hàng theo orderId
+            // URL: /{orderId}
+            if (pathParts.length == 1) {
+                String userId = (String) req.getAttribute("userId");
+                if (userId == null) {
+                    sendErrorResponse(resp, "Không tìm thấy thông tin người dùng từ token", HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                try {
+                    int orderId = Integer.parseInt(pathParts[0]);
+                    Order order = orderDao.getOrderById(orderId);
+                    if (order == null) {
+                        sendErrorResponse(resp, "Không tìm thấy đơn hàng", HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+                    if (!userId.equals(order.getUserId())) {
+                        sendErrorResponse(resp, "Bạn không có quyền truy cập đánh giá của đơn hàng này", HttpServletResponse.SC_FORBIDDEN);
+                        return;
+                    }
+                    Optional<OrderReview> reviewOpt = orderReviewService.getReviewById(String.valueOf(orderId));
+                    if (reviewOpt.isPresent()) {
+                        sendJsonResponse(resp, ApiResponse.builder()
+                                .success(true)
+                                .message("Review retrieved successfully")
+                                .data(Map.of("review", OrderReviewMapper.toMap(reviewOpt.get())))
+                                .build());
+                    } else {
+                        sendErrorResponse(resp, "Không tìm thấy đánh giá cho đơn hàng: " + orderId, HttpServletResponse.SC_NOT_FOUND);
+                    }
+                } catch (NumberFormatException e) {
+                    sendErrorResponse(resp, "Mã đơn hàng không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                }
+                return;
+            }
+
+            // Trường hợp lấy tất cả review theo productId
+            // URL: /product/{productId}
+            if (pathParts.length == 2 && "product".equals(pathParts[0])) {
+                String productId = pathParts[1];
+                List<OrderReview> reviews = orderReviewService.getReviewsByProductId(productId);
+                sendJsonResponse(resp, ApiResponse.builder()
+                        .success(true)
+                        .message("Reviews retrieved successfully")
+                        .data(Map.of("reviews", OrderReviewMapper.toMapList(reviews)))
+                        .build());
+                return;
+            }
+
+            sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorResponse(resp, "Lỗi server: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
-
-        // Trường hợp lấy tất cả review theo productId
-        // URL: /product/{productId}
-        if (pathParts.length == 3 && "product".equals(pathParts[1])) {
-            String productId = pathParts[2];
-            // Lấy list review theo productId từ service
-            List<OrderReview> reviews = orderReviewService.getReviewsByProductId(productId);
-
-            sendJsonResponse(resp, ApiResponse.builder()
-                    .success(true)
-                    .message("Reviews retrieved successfully")
-                    .data(Map.of("reviews", OrderReviewMapper.toMapList(reviews)))
-                    .build());
-            return;
-        }
-
-        sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    	System.out.println(resp);
-        String pathInfo = req.getPathInfo();
-        String[] pathParts = pathInfo.split("/");
-        
-        // Path format should be /orderId/reviews or /orderId/reviews/reviewId/like
-        if (pathParts.length < 3) {
-            sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-        
-        String orderId = pathParts[1];
-        int orderid = Integer.parseInt(pathParts[1]);
-        Order order = orderDao.getOrderById((orderid));
-        
-        String userId = (String) req.getAttribute("userId");
-        if(!userId.equals(order.getUserId())) {
-        	sendErrorResponse(resp, "you don't have permistion", HttpServletResponse.SC_UNAUTHORIZED);
-        }
-        
-        if (pathParts.length == 3 || (pathParts.length == 4 && pathParts[3].isEmpty())) {
-            // Create a new review for an order
-            
-            try {
-                OrderReviewRequest reviewRequest = objectMapper.readValue(req.getInputStream(), OrderReviewRequest.class);
-                OrderReview createdReview = orderReviewService.createReview(orderId, reviewRequest);
-                
-                if (createdReview != null) {
-                    sendJsonResponse(resp, ApiResponse.builder()
-                            .success(true)
-                            .message("Review created successfully")
-                            .data(Map.of("review", OrderReviewMapper.toMap(createdReview)))
-                            .build(), HttpServletResponse.SC_CREATED);
-                } else {
-                    sendErrorResponse(resp, "Failed to create review", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                }
-            } catch (Exception e) {
-                sendErrorResponse(resp, "Invalid request format: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        // Thiết lập header CORS
+        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+
+        try {
+            String pathInfo = req.getPathInfo();
+            if (pathInfo == null || pathInfo.equals("/")) {
+                sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                return;
             }
-        } else if (pathParts.length == 5 && "like".equals(pathParts[4])) {
-            // Like a review
-            String reviewId = pathParts[3];
-            boolean success = orderReviewService.likeReview(reviewId);
-            
-            if (success) {
-                Optional<OrderReview> updatedReview = orderReviewService.getReviewById(reviewId);
-                if (updatedReview.isPresent()) {
-                    sendJsonResponse(resp, ApiResponse.builder()
-                            .success(true)
-                            .message("Review liked successfully")
-                            .data(Map.of("review", OrderReviewMapper.toMap(updatedReview.get())))
-                            .build());
+
+            String[] pathParts = pathInfo.substring(1).split("/");
+            // Path format should be /orderId/reviews or /orderId/reviews/reviewId/like
+            if (pathParts.length < 2) {
+                sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            // Kiểm tra userId từ token
+            String userId = (String) req.getAttribute("userId");
+            if (userId == null) {
+                sendErrorResponse(resp, "Không tìm thấy thông tin người dùng từ token", HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+
+            // Chuyển đổi orderId và lấy đơn hàng
+            int orderId;
+            try {
+                orderId = Integer.parseInt(pathParts[0]);
+            } catch (NumberFormatException e) {
+                sendErrorResponse(resp, "Mã đơn hàng không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            Order order = orderDao.getOrderById(orderId);
+            if (order == null) {
+                sendErrorResponse(resp, "Không tìm thấy đơn hàng", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            // Kiểm tra quyền sở hữu đơn hàng
+            if (!userId.equals(order.getUserId())) {
+                sendErrorResponse(resp, "Bạn không có quyền thực hiện hành động này", HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
+
+            // Trường hợp tạo đánh giá mới: /orderId/reviews
+            if (pathParts.length == 2 || (pathParts.length == 3 && pathParts[2].isEmpty())) {
+                // Kiểm tra trạng thái đơn hàng
+                if (!CustomerOrderServlet.OrderStatus.SUCCESS.equals(order.getStatus())) {
+                    sendErrorResponse(resp, "Chỉ các đơn hàng đã hoàn tất mới có thể được đánh giá", HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+
+                try {
+                    OrderReviewRequest reviewRequest = objectMapper.readValue(req.getInputStream(), OrderReviewRequest.class);
+                    OrderReview createdReview = orderReviewService.createReview(String.valueOf(orderId), reviewRequest);
+                    if (createdReview != null) {
+                        sendJsonResponse(resp, ApiResponse.builder()
+                                .success(true)
+                                .message("Đánh giá được tạo thành công")
+                                .data(Map.of("review", OrderReviewMapper.toMap(createdReview)))
+                                .build(), HttpServletResponse.SC_CREATED);
+                    } else {
+                        sendErrorResponse(resp, "Không thể tạo đánh giá", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    }
+                } catch (Exception e) {
+                    sendErrorResponse(resp, "Định dạng yêu cầu không hợp lệ: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+                }
+            }
+            // Trường hợp thích một đánh giá: /orderId/reviews/reviewId/like
+            else if (pathParts.length == 4 && "like".equals(pathParts[3])) {
+                String reviewId = pathParts[2];
+                boolean success = orderReviewService.likeReview(reviewId);
+                if (success) {
+                    Optional<OrderReview> updatedReview = orderReviewService.getReviewById(reviewId);
+                    if (updatedReview.isPresent()) {
+                        sendJsonResponse(resp, ApiResponse.builder()
+                                .success(true)
+                                .message("Thích đánh giá thành công")
+                                .data(Map.of("review", OrderReviewMapper.toMap(updatedReview.get())))
+                                .build());
+                    } else {
+                        sendJsonResponse(resp, ApiResponse.builder()
+                                .success(true)
+                                .message("Thích đánh giá thành công")
+                                .build());
+                    }
                 } else {
-                    sendJsonResponse(resp, ApiResponse.builder()
-                            .success(true)
-                            .message("Review liked successfully")
-                            .build());
+                    sendErrorResponse(resp, "Không thể thích đánh giá", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 }
             } else {
-                sendErrorResponse(resp, "Failed to like review", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
             }
-        } else {
-            sendErrorResponse(resp, "Invalid URL path", HttpServletResponse.SC_BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorResponse(resp, "Lỗi server: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 

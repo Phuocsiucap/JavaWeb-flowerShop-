@@ -8,22 +8,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OrderItemMapper {
-
-    public static Map<String, Object> toMap(OrderItem orderItem) {
+    public static Map<String, Object> toMap(OrderItem item) {
         Map<String, Object> map = new HashMap<>();
-        map.put("orderItemId", orderItem.getOrderItemId());
-        map.put("orderId", orderItem.getOrderId());
-        map.put("productId", orderItem.getProductId());
-        map.put("productName", orderItem.getProductName());
-        map.put("quantity", orderItem.getQuantity());
-        map.put("price", orderItem.getPrice());
-        map.put("imageUrl", orderItem.getImageUrl());
+        map.put("orderItemId", item.getOrderItemId());
+        map.put("orderId", item.getOrderId());
+        map.put("productId", item.getProductId());
+        map.put("productName", item.getProductName());
+        map.put("quantity", item.getQuantity());
+        map.put("price", item.getPrice());
+        map.put("imageUrl", item.getImageUrl());
         return map;
     }
 
-    public static List<Map<String, Object>> toMapList(List<OrderItem> orderItems) {
-        return orderItems.stream()
-                .map(OrderItemMapper::toMap)
-                .collect(Collectors.toList());
+    public static List<Map<String, Object>> toMapList(List<OrderItem> items) {
+        return items.stream().map(OrderItemMapper::toMap).collect(Collectors.toList());
     }
 }

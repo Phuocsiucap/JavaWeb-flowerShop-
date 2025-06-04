@@ -11,42 +11,44 @@ import java.util.Date;
 
 
 public class OrderReviewDao {
-    private Connection getConnection() throws SQLException {
-        return DatabaseConnection.getConnection();
-    }
-    
     public List<OrderReview> getAllReviews() {
         List<OrderReview> reviews = new ArrayList<>();
         String sql = "SELECT * FROM order_review ORDER BY date DESC";
+        Connection conn = null;
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try {
+            conn = DatabaseConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
+                 ResultSet rs = stmt.executeQuery()) {
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-            while (rs.next()) {
-                OrderReview review = new OrderReview();
-                review.setId(rs.getString("id"));
-                review.setOrderId(rs.getString("order_id"));
-                review.setName(rs.getString("name"));
-                review.setEmail(rs.getString("email"));
-                review.setOverallRating(rs.getInt("overall_rating"));
-                review.setDeliveryRating(rs.getInt("delivery_rating"));
-                review.setPackagingRating(rs.getInt("packaging_rating"));
-                try {
-                    review.setDate(dateFormat.parse(rs.getString("date")));
-                } catch (ParseException e) {
-                    review.setDate(null);
+                while (rs.next()) {
+                    OrderReview review = new OrderReview();
+                    review.setId(rs.getString("id"));
+                    review.setOrderId(rs.getString("order_id"));
+                    review.setName(rs.getString("name"));
+                    review.setEmail(rs.getString("email"));
+                    review.setOverallRating(rs.getInt("overall_rating"));
+                    review.setDeliveryRating(rs.getInt("delivery_rating"));
+                    review.setPackagingRating(rs.getInt("packaging_rating"));
+                    try {
+                        review.setDate(dateFormat.parse(rs.getString("date")));
+                    } catch (ParseException e) {
+                        review.setDate(null);
+                    }
+                    review.setComment(rs.getString("comment"));
+                    review.setLikes(rs.getInt("likes"));
+
+                    reviews.add(review);
                 }
-                review.setComment(rs.getString("comment"));
-                review.setLikes(rs.getInt("likes"));
-
-                reviews.add(review);
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                DatabaseConnection.returnConnection(conn);
+            }
         }
 
         return reviews;
@@ -55,7 +57,10 @@ public class OrderReviewDao {
     
 
     public Optional<OrderReview> getReviewById(String id) {
-        try (Connection conn = getConnection()) {
+        Connection conn = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM order_review WHERE order_id = ?");
             stmt.setString(1, id);
             
@@ -85,13 +90,20 @@ public class OrderReviewDao {
         } catch (SQLException e) {
             // Handle SQL exception
             e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                DatabaseConnection.returnConnection(conn);
+            }
         }
         
         return Optional.empty();
     }
 
     public OrderReview createReview(OrderReview review) {
-        try (Connection conn = getConnection()) {
+        Connection conn = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
             String sql = "INSERT INTO order_review (id, order_id, name, email, overall_rating, delivery_rating, packaging_rating, date, comment, likes) " +
                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
@@ -122,11 +134,18 @@ public class OrderReviewDao {
             // Handle SQL exception
             e.printStackTrace();
             return null;
+        } finally {
+            if (conn != null) {
+                DatabaseConnection.returnConnection(conn);
+            }
         }
     }
 
     public boolean incrementLikes(String reviewId) {
-        try (Connection conn = getConnection()) {
+        Connection conn = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
             String sql = "UPDATE order_review SET likes = likes + 1 WHERE id = ?";
             
             PreparedStatement stmt = conn.prepareStatement(sql);
@@ -139,6 +158,10 @@ public class OrderReviewDao {
             // Handle SQL exception
             e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                DatabaseConnection.returnConnection(conn);
+            }
         }
     }
     
@@ -150,38 +173,43 @@ public class OrderReviewDao {
                      "JOIN orderitem i ON o.orderId = i.orderId " +
                      "WHERE i.productId = ? " +
                      "ORDER BY r.date DESC";
+        Connection conn = null;
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try {
+            conn = DatabaseConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, productId);
 
-            stmt.setString(1, productId);
+                ResultSet rs = stmt.executeQuery();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-            ResultSet rs = stmt.executeQuery();
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                while (rs.next()) {
+                    OrderReview review = new OrderReview();
+                    review.setId(rs.getString("id"));
+                    review.setOrderId(rs.getString("order_id"));
+                    review.setName(rs.getString("name"));
+                    review.setEmail(rs.getString("email"));
+                    review.setOverallRating(rs.getInt("overall_rating"));
+                    review.setDeliveryRating(rs.getInt("delivery_rating"));
+                    review.setPackagingRating(rs.getInt("packaging_rating"));
+                    try {
+                        review.setDate(dateFormat.parse(rs.getString("date")));
+                    } catch (ParseException e) {
+                        // Nếu lỗi parse thì set null hoặc date mặc định
+                        review.setDate(null);
+                    }
+                    review.setComment(rs.getString("comment"));
+                    review.setLikes(rs.getInt("likes"));
 
-            while (rs.next()) {
-                OrderReview review = new OrderReview();
-                review.setId(rs.getString("id"));
-                review.setOrderId(rs.getString("order_id"));
-                review.setName(rs.getString("name"));
-                review.setEmail(rs.getString("email"));
-                review.setOverallRating(rs.getInt("overall_rating"));
-                review.setDeliveryRating(rs.getInt("delivery_rating"));
-                review.setPackagingRating(rs.getInt("packaging_rating"));
-                try {
-                    review.setDate(dateFormat.parse(rs.getString("date")));
-                } catch (ParseException e) {
-                    // Nếu lỗi parse thì set null hoặc date mặc định
-                    review.setDate(null);
+                    reviews.add(review);
                 }
-                review.setComment(rs.getString("comment"));
-                review.setLikes(rs.getInt("likes"));
-
-                reviews.add(review);
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                DatabaseConnection.returnConnection(conn);
+            }
         }
 
         return reviews;

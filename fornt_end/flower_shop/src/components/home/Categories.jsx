@@ -22,7 +22,7 @@ function Categories() {
               to={`/category/${category.slug}`} 
               className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105"
             >
-              <img src={`${BASE_URL}${category.imageUrl}`} alt={category.name} className="w-full h-40 object-cover" />
+              <img src={category.imageUrl} alt={category.name} className="w-full h-40 object-cover" />
               <div className="p-4 text-center">
                 <h3 className="font-medium text-gray-800">{category.name}</h3>
               </div>

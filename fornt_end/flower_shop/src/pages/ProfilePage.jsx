@@ -38,7 +38,7 @@ const ProfilePage = () => {
   const fetchUserOrders = async () => {
     if (!currentUser?.id) return;
     try {
-      const response = await axios.get(`/api/orders/user/${currentUser.id}`, {
+      const response = await axios.get(`/api/customer/orders/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',

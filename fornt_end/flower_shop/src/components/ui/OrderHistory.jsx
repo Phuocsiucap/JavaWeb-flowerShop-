@@ -7,10 +7,17 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
   const [error, setError] = useState(null);
+  const [searchDate, setSearchDate] = useState("");
+  const [filteredOrders, setFilteredOrders] = useState(orders);
+
+  // Cập nhật filteredOrders khi orders thay đổi hoặc khi xóa lọc
+  React.useEffect(() => {
+    setFilteredOrders(orders);
+  }, [orders]);
 
   const fetchOrderItems = async (orderId) => {
     try {
-      const response = await axios.get(`/api/orders/${orderId}/items`, {
+      const response = await axios.get(`/api/customer/orders/${orderId}/items`, {
         headers: {
           'Authorization': `Bearer ${Cookies.get('token')}`,
           'Content-Type': 'application/json',
@@ -55,7 +62,7 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
       }
 
       // Sử dụng query parameter thay vì body
-      const updateResponse = await axios.put(`/api/orders/update-status`, {
+      const updateResponse = await axios.put(`/api/customer/orders/update-status`, {
         orderId: orderId,
         status: newStatus
       }, {
@@ -77,6 +84,22 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
     }
   };
 
+  const handleSearchByDate = () => {
+    if (!searchDate) {
+      setFilteredOrders(orders);
+      return;
+    }
+    setFilteredOrders(
+      orders.filter(order => {
+        // Giả sử order.date là dạng 'dd/MM/yyyy' hoặc 'yyyy-MM-dd'
+        const orderDate = order.date.includes("/")
+          ? order.date.split("/").reverse().join("-")
+          : order.date;
+        return orderDate.startsWith(searchDate);
+      })
+    );
+  };
+
   const formatPrice = (price) =>
     new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -85,33 +108,59 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
 
   return (
     <div>
-      <h2 className="text-xl font-medium mb-6">Order History</h2>
       {error && <div className="text-red-500 mb-4">{error}</div>}
 
-      {orders.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      {/* Bộ lọc tìm kiếm theo ngày tháng năm */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:space-x-4 bg-gradient-to-r from-emerald-100 via-emerald-50 to-white p-6 rounded-2xl shadow-lg border border-emerald-100 animate-fade-in">
+        <svg className="w-8 h-8 text-emerald-500 mr-3 mb-2 md:mb-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <label className="font-semibold text-emerald-700 mb-2 md:mb-0 text-lg">Tìm đơn hàng theo ngày:</label>
+        <input
+          type="date"
+          className="border border-emerald-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-700 shadow-sm transition-all duration-200 hover:border-emerald-500"
+          value={searchDate}
+          onChange={e => setSearchDate(e.target.value)}
+        />
+        <button
+          onClick={handleSearchByDate}
+          className="ml-0 md:ml-2 mt-2 md:mt-0 flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-transform px-6 py-2 rounded-full shadow-lg font-bold text-base focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 group"
+        >
+          <svg className="w-5 h-5 text-emerald-700 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
+          <span className="text-emerald-700 font-semibold">Tìm kiếm</span>
+        </button>
+        {searchDate && (
+          <button
+            onClick={() => { setSearchDate(''); setFilteredOrders(orders); }}
+            className="ml-2 text-emerald-700 underline hover:text-emerald-900 font-medium"
+          >
+            Xóa lọc
+          </button>
+        )}
+      </div>
+
+      {filteredOrders.length > 0 ? (
+        <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
+          <table className="min-w-full divide-y divide-emerald-200">
+            <thead className="bg-emerald-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Order ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Ngày đặt
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
+            <tbody className="bg-white divide-y divide-emerald-100">
+              {filteredOrders.map((order) => (
                 <React.Fragment key={order.id}>
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -131,21 +180,14 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                       }`}>
                         {order.status}
                       </span>
-                    </td>                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-4">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-4">
                       <button
                         onClick={() => handleViewDetails(order.id)}
                         className="hover:text-emerald-800"
                       >
                         {selectedOrderId === order.id ? 'Close Details' : 'View Details'}
                       </button>
-                      {order.status === 'Thành công' && (
-                        <Link
-                          to={`/order/${order.id}/review`}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          Đánh giá
-                        </Link>
-                      )}
                     </td>
                   </tr>
                   {selectedOrderId === order.id && (
@@ -190,22 +232,26 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
                             </tbody>
                           </table>
                           <div className="mt-4 flex space-x-4">
-                            <button
-                              onClick={() => handleUpdateStatus(order.id, 'Success')}
-                              className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
-                              disabled={false}
-                              title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
-                            >
-                              Thanh toán
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
-                              className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                              disabled={false}
-                              title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
-                            >
-                              Hủy đơn hàng
-                            </button>
+                            {order.status === 'Đang xử lý' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateStatus(order.id, 'Success')}
+                                  className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+                                  disabled={false}
+                                  title="Chỉ đơn hàng 'Đang xử lý' mới được thanh toán"
+                                >
+                                  Thanh toán
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
+                                  className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+                                  disabled={false}
+                                  title="Chỉ đơn hàng 'Đang xử lý' mới được hủy"
+                                >
+                                  Hủy đơn hàng
+                                </button>
+                              </>
+                            )}
                             {order.status === 'Thành công' && (
                               <Link
                                 to={`/order/${order.id}/review`}

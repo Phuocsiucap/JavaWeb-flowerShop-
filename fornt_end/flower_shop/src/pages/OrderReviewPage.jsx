@@ -17,10 +17,10 @@ const OrderReviewPage = () => {
       {/* Thêm nút quay lại trang đơn hàng nếu cần */}
       <div className="text-center mt-8">
         <a 
-          href="/orders" 
+          href="/" 
           className="text-pink-500 hover:text-pink-600 font-medium inline-flex items-center"
         >
-          <span className="mr-1">←</span> Quay lại danh sách đơn hàng
+          <span className="mr-1">←</span> Quay lại trang chủ
         </a>
       </div>
     </div>

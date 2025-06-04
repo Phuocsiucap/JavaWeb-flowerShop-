@@ -153,7 +153,7 @@ export const AdminProvider = ({ children }) => {
 
   const getAllOrders = async (filters = {}) => {
     try {
-      const res = await axios.get('api/orders/', {
+      const res = await axios.get('api/admin/orders/', {
         headers: { Authorization: `Bearer ${adminToken}` },
         params: filters
       });
@@ -165,22 +165,22 @@ export const AdminProvider = ({ children }) => {
     }
   };
 
-  const getOrderItems = async (orderId) => {
-    try {
-      const res = await axios.get(`api/orders/${orderId}/items`, {
-        headers: { Authorization: `Bearer ${adminToken}` }
-      });
-      // Đảm bảo trả về danh sách Map từ OrderItemMapper
-      return res.data.data.items || []; // Thêm kiểm tra null để tránh lỗi
-    } catch (error) {
-      console.error(`Error fetching items for order ${orderId}:`, error.response?.data?.message || error.message);
-      return [];
-    }
-  };
+  // const getOrderItems = async (orderId) => {
+  //   try {
+  //     const res = await axios.get(`api/orders/${orderId}/items`, {
+  //       headers: { Authorization: `Bearer ${adminToken}` }
+  //     });
+  //     // Đảm bảo trả về danh sách Map từ OrderItemMapper
+  //     return res.data.data.items || []; // Thêm kiểm tra null để tránh lỗi
+  //   } catch (error) {
+  //     console.error(`Error fetching items for order ${orderId}:`, error.response?.data?.message || error.message);
+  //     return [];
+  //   }
+  // };
 
   const deleteOrder = async (orderId) => {
     try {
-      const res = await axios.delete(`api/orders/${orderId}`, {
+      const res = await axios.delete(`api/admin/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${adminToken}` }
       });
       // Trả về dữ liệu để frontend có thể xử lý (ví dụ: cập nhật trạng thái)
@@ -212,7 +212,7 @@ export const AdminProvider = ({ children }) => {
     updateUser,
     deleteUser,
     getAllOrders,
-    getOrderItems,
+    // getOrderItems,
     deleteOrder
   };
 

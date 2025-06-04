@@ -20,13 +20,15 @@ const SalesChart = ({ orders }) => {
       }
     });
 
-    return Object.entries(map)
+    const allData = Object.entries(map)
       .map(([date, sales]) => ({ date, sales }))
       .sort((a, b) => {
         const [dayA, monthA, yearA] = a.date.split('/').map(Number);
         const [dayB, monthB, yearB] = b.date.split('/').map(Number);
         return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
       });
+    // Lấy 6 ngày gần nhất (tính từ ngày đặt muộn nhất)
+    return allData.slice(-6);
   }, [orders]);
 
   const formatCurrency = (value) => {

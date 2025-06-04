@@ -16,14 +16,13 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const [orderItems, setOrderItems] = useState([]);
-  const { getUserById, adminToken, getOrderItems, deleteOrder } = useAdmin();
+  const { getUserById, adminToken, deleteOrder } = useAdmin();
 
   useEffect(() => {
     const fetchOrders = async () => {
       const token = Cookies.get('adminToken');
       try {
-        const response = await axios.get(`/api/orders`, {
+        const response = await axios.get(`/api/admin/orders`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -50,7 +49,7 @@ const OrdersPage = () => {
               status,
               payment: paymentMap[status],
               amount: o.totalAmount,
-              items: o.items?.length || 1, // Số lượng sản phẩm từ dữ liệu ban đầu
+              items: o.items || [], // Lưu luôn danh sách sản phẩm
             };
           })
         );
@@ -63,16 +62,6 @@ const OrdersPage = () => {
     };
     fetchOrders();
   }, [getUserById, adminToken]);
-
-  const fetchOrderItems = async (orderId) => {
-    try {
-      const items = await getOrderItems(orderId);
-      console.log('Fetched order items:', items); // Thêm log để kiểm tra dữ liệu
-      setOrderItems(items || []);
-    } catch (err) {
-      setError(err.message || 'Lỗi khi lấy danh sách mặt hàng');
-    }
-  };
 
   const handleCancelOrder = async (orderId, status) => {
     if (status === 'Đang xử lý') {
@@ -330,15 +319,12 @@ const OrdersPage = () => {
                             </td>
                             <td className="px-6 py-4 text-gray-700">
                               {formatPrice(order.amount)}
-                              <div className="text-xs text-gray-400">{order.items} sản phẩm</div>
+                              <div className="text-xs text-gray-400">{order.items.length} sản phẩm</div>
                             </td>
                             <td className="px-6 py-4 flex space-x-2">
                               <button
                                 className="p-1 text-blue-600 hover:bg-blue-50 rounded flex items-center"
-                                onClick={() => {
-                                  setSelectedOrderId(selectedOrderId === order.id ? null : order.id);
-                                  if (selectedOrderId !== order.id) fetchOrderItems(order.id);
-                                }}
+                                onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}
                               >
                                 <Eye size={16} className="mr-1" />
                                 Chi tiết
@@ -375,8 +361,8 @@ const OrdersPage = () => {
                                       </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                      {orderItems.length > 0 ? (
-                                        orderItems.map((item, index) => (
+                                      {order.items.length > 0 ? (
+                                        order.items.map((item, index) => (
                                           <tr key={index}>
                                             <td className="px-4 py-2">{item.productId || 'Không rõ tên'}</td>
                                             <td className="px-4 py-2">{item.quantity}</td>
