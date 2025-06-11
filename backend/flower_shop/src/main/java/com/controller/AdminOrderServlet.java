@@ -5,6 +5,7 @@ import com.dto.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapper.OrderMapper;
 import com.model.Order;
+import com.dto.request.UpdateOrderStatusRequest;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -22,15 +23,16 @@ public class AdminOrderServlet extends HttpServlet {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static class OrderStatus {
-        public static final String PROCESSING = "Đang xử lý";
-        public static final String SUCCESS = "Thành công";
-        public static final String CANCELLED = "Đã hủy";
+    	public static final String PENDING = "Pending";
+        public static final String SHIPPING = "Shipping";
+        public static final String SUCCESS = "Success";
+        public static final String CANCELLED = "Cancelled";
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, PUT, DELETE, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
@@ -67,9 +69,81 @@ public class AdminOrderServlet extends HttpServlet {
     }
 
     @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, PUT, DELETE, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+
+        try {
+            String role = (String) req.getAttribute("role");
+            if (!"admin".equals(role)) {
+                sendErrorResponse(resp, "Chỉ admin mới có quyền cập nhật trạng thái đơn hàng", HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
+
+            String pathInfo = req.getPathInfo();
+            if (pathInfo == null || !pathInfo.startsWith("/update-status")) {
+                sendErrorResponse(resp, "Endpoint không tồn tại", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            UpdateOrderStatusRequest request = objectMapper.readValue(req.getInputStream(), UpdateOrderStatusRequest.class);
+            int orderId = request.getOrderId();
+            String newStatus = request.getStatus();
+
+            Order order = orderDAO.getOrderById(orderId);
+            if (order == null) {
+                sendErrorResponse(resp, "Đơn hàng không tồn tại", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            String currentStatus = order.getStatus();
+            if (currentStatus == null) {
+                sendErrorResponse(resp, "Trạng thái hiện tại không xác định", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            // Kiểm tra trạng thái hiện tại và trạng thái mới
+            if (OrderStatus.SUCCESS.equals(currentStatus) || OrderStatus.CANCELLED.equals(currentStatus)) {
+                sendErrorResponse(resp, "Không thể thay đổi trạng thái đơn hàng đã hoàn tất hoặc đã hủy", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            if (!OrderStatus.PENDING.equals(currentStatus)) {
+                sendErrorResponse(resp, "Chỉ đơn hàng ở trạng thái 'Pending' mới có thể cập nhật trạng thái", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            if (!OrderStatus.SHIPPING.equals(newStatus)) {
+                sendErrorResponse(resp, "Trạng thái mới không hợp lệ: " + newStatus + ". Chỉ có thể chuyển sang 'Đang giao'", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            // Ánh xạ trạng thái "Đang giao" thành "Shipping" khi lưu vào cơ sở dữ liệu
+            String dbStatus = OrderStatus.SHIPPING.equals(newStatus) ? "Shipping" : newStatus;
+
+            boolean updated = orderDAO.updateOrderStatus(orderId, dbStatus);
+            if (updated) {
+                sendJsonResponse(resp, ApiResponse.builder()
+                        .success(true)
+                        .message("Cập nhật trạng thái thành công")
+                        .data(Map.of("orderId", orderId, "status", newStatus))
+                        .build(), HttpServletResponse.SC_OK);
+            } else {
+                sendErrorResponse(resp, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorResponse(resp, "Lỗi server: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, PUT, DELETE, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
@@ -107,7 +181,7 @@ public class AdminOrderServlet extends HttpServlet {
                 return;
             }
 
-            if ("Đang xử lý".equals(order.getStatus())) {
+            if (OrderStatus.PENDING.equals(order.getStatus()) || OrderStatus.SHIPPING.equals(order.getStatus())) {
                 sendErrorResponse(resp, "Không thể xóa đơn hàng. Chỉ đơn hàng 'Thành công' hoặc 'Đã hủy' mới được xóa.", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
@@ -130,7 +204,7 @@ public class AdminOrderServlet extends HttpServlet {
     @Override
     protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, PUT, DELETE, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
         resp.setHeader("Access-Control-Max-Age", "86400");
         resp.setStatus(HttpServletResponse.SC_OK);

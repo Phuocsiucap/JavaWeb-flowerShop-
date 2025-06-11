@@ -53,14 +53,16 @@ public class OrderDAO {
             int orderId = rs.getInt(1);
             order.setOrderId(orderId);
 
-            String sqlItem = "INSERT INTO orderitem (orderId, productId, quantity, price) VALUES (?, ?, ?, ?)";
+            String sqlItem = "INSERT INTO orderitem (orderId, productId, productName, quantity, price, imageUrl) VALUES (?, ?, ?, ?, ?, ?)";
             psItem = conn.prepareStatement(sqlItem);
 
             for (OrderItem item : order.getItems()) {
                 psItem.setInt(1, orderId);
                 psItem.setInt(2, item.getProductId());
-                psItem.setInt(3, item.getQuantity());
-                psItem.setDouble(4, item.getPrice());
+                psItem.setString(3, item.getProductName());
+                psItem.setInt(4, item.getQuantity());
+                psItem.setDouble(5, item.getPrice());
+                psItem.setString(6, item.getImageUrl());
                 psItem.executeUpdate();
             }
 

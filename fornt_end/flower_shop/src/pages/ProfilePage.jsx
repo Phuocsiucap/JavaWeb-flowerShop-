@@ -49,8 +49,7 @@ const ProfilePage = () => {
           id: order.orderId,
           date: new Date(order.orderDate).toLocaleDateString('en-CA'),
           total: order.totalAmount,
-          status: order.status === 'Success' ? 'Thành công' :
-                  order.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'
+          status: order.status // Giữ nguyên giá trị status từ backend (Pending, Shipping, Success, Cancelled)
         }));
         setOrders(userOrders);
       } else {

@@ -2,14 +2,15 @@ package com.controller;
 
 import com.dao.OrderDAO;
 import com.dao.ProductDAO;
+import com.dao.ProductDAOImpl;
 import com.dao.UserDao;
 import com.dto.request.CheckoutRequest;
 import com.dto.response.SuccessResponse;
-import com.dto.response.ApiResponse;
-import com.dao.ProductDAOImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dto.response.ApiResponse;
 import com.model.Order;
 import com.model.OrderItem;
+import com.model.Product;
 import com.model.User;
 import com.service.AuthService;
 import com.service.AuthServiceImpl;
@@ -57,7 +58,18 @@ public class CheckoutServlet extends HttpServlet {
             }
 
             double totalAmount = 0;
+            // Bổ sung thông tin productName và imageUrl cho từng OrderItem
             for (OrderItem item : checkout.items) {
+                Product product = productDAO.getProductById(item.getProductId());
+                if (product == null) {
+                    sendErrorResponse(response,
+                            "Sản phẩm với ID " + item.getProductId() + " không tồn tại",
+                            HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+                item.setProductName(product.getName());
+                item.setImageUrl(product.getImageUrl());
+                item.setPrice(product.getPrice()); // Đảm bảo giá lấy từ DB để tránh sai lệch
                 totalAmount += item.getQuantity() * item.getPrice();
             }
 

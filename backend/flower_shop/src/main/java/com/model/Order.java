@@ -10,7 +10,7 @@ public class Order {
     private String userId;
     private Date orderDate;
     private double totalAmount;
-    private String status; // Pending, Paid, Cancelled
+    private String status; // Pending, Paid, Cancelled,Shipping
     private String paymentMethod; // Cash, Credit Card, Banking
     private List<OrderItem> items;
     private String shippingAddress;

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../../axiosInstance';
-import { Search, ArrowUpDown, Eye, Download, Trash2 } from 'lucide-react';
+import { Search, ArrowUpDown, Eye, Download, X, Trash2, CheckCircle } from 'lucide-react';
 import AdminLayout from '../../components/admin/Layout';
 import Cookies from 'js-cookie';
 import { useAdmin } from '../../contexts/AdminContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
+import OrderDetailsModal from '../../components/admin/OrderDetailsModal';
 
 const OrdersPage = () => {
   const [selectedTab, setSelectedTab] = useState('all');
@@ -15,7 +16,8 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const { getUserById, adminToken, deleteOrder } = useAdmin();
 
   useEffect(() => {
@@ -33,12 +35,14 @@ const OrdersPage = () => {
             const customer = o.userId ? await getUserById(o.userId) : null;
             const statusMap = {
               Pending: 'Đang xử lý',
+              Shipping: 'Đang giao',
               Success: 'Thành công',
               Cancelled: 'Đã hủy',
             };
             const status = statusMap[o.status] || o.status;
             const paymentMap = {
-              'Đang xử lý': 'Chờ thanh toán',
+              'Đang xử lý': 'Chờ xử lý',
+              'Đang giao': 'Chờ thanh toán',
               'Thành công': 'Đã thanh toán',
               'Đã hủy': 'Hủy thanh toán',
             };
@@ -49,7 +53,7 @@ const OrdersPage = () => {
               status,
               payment: paymentMap[status],
               amount: o.totalAmount,
-              items: o.items || [], // Lưu luôn danh sách sản phẩm
+              items: o.items || [],
             };
           })
         );
@@ -63,21 +67,79 @@ const OrdersPage = () => {
     fetchOrders();
   }, [getUserById, adminToken]);
 
-  const handleCancelOrder = async (orderId, status) => {
-    if (status === 'Đang xử lý') {
+  const handleConfirmOrder = async (orderId) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận đơn hàng?',
+      text: 'Trạng thái đơn hàng sẽ được chuyển sang "Đang giao".',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const token = Cookies.get('adminToken');
+        const response = await axios.put(
+          `/api/admin/orders/update-status`,
+          { orderId, status: 'Shipping' }, 
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (response.data.success) {
+          setOrders((prevOrders) =>
+            prevOrders.map((order) =>
+              order.id === orderId
+                ? { ...order, status: 'Đang giao', payment: 'Chờ thanh toán' }
+                : order
+            )
+          );
+          setSelectedOrder((prev) =>
+            prev && prev.id === orderId
+              ? { ...prev, status: 'Đang giao', payment: 'Chờ thanh toán' }
+              : prev
+          );
+          Swal.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: 'Đơn hàng đã được xác nhận!',
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Lỗi',
+            text: response.data.message || 'Không thể xác nhận đơn hàng!',
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: err.response?.data?.message || 'Không thể xác nhận đơn hàng!',
+        });
+      }
+    }
+  };
+
+  const handleDeleteOrder = async (orderId, status) => {
+    if (status === 'Đang xử lý' || status === 'Đang giao') {
       Swal.fire({
         icon: 'error',
         title: 'Lỗi',
-        text: 'Không thể hủy đơn hàng đang xử lý!',
+        text: `Không thể xóa đơn hàng ở trạng thái ${status}!`,
       });
       return;
     }
 
     const result = await Swal.fire({
-      title: 'Bạn có muốn hủy đơn hàng không?',
+      title: 'Bạn có muốn xóa đơn hàng không?',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Hủy đơn hàng',
+      confirmButtonText: 'Xóa đơn hàng',
       cancelButtonText: 'Không',
     });
 
@@ -86,23 +148,26 @@ const OrdersPage = () => {
         const response = await deleteOrder(orderId);
         if (response.success) {
           setOrders(orders.filter((order) => order.id !== orderId));
+          setIsDetailsModalOpen(false);
+          setSelectedOrder(null);
           Swal.fire({
             icon: 'success',
-            title: 'Đã hủy',
+            title: 'Đã xóa',
             text: response.message,
           });
         } else {
           Swal.fire({
             icon: 'error',
             title: 'Lỗi',
-            text: response.message || 'Không thể hủy đơn hàng!',
+            text: response.message || 'Không thể xóa đơn hàng!',
           });
         }
       } catch (err) {
+        console.error('Lỗi khi xóa đơn hàng:', err);
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
-          text: err.message || 'Không thể hủy đơn hàng!',
+          text: err.message || 'Không thể xóa đơn hàng!',
         });
       }
     }
@@ -113,7 +178,11 @@ const OrdersPage = () => {
     if (!input) return;
     html2canvas(input, { scale: 2 }).then((canvas) => {
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4',
+      });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const imgProps = pdf.getImageProperties(imgData);
@@ -133,12 +202,14 @@ const OrdersPage = () => {
   const statusColors = {
     'Thành công': 'bg-green-100 text-green-800',
     'Đang xử lý': 'bg-yellow-100 text-yellow-800',
+    'Đang giao': 'bg-blue-100 text-blue-800',
     'Đã hủy': 'bg-red-100 text-red-800',
   };
 
   const paymentColors = {
     'Đã thanh toán': 'bg-green-100 text-green-800',
-    'Chờ thanh toán': 'bg-yellow-100 text-yellow-800',
+    'Chờ thanh toán': 'bg-blue-100 text-blue-800',
+    'Chờ xử lý': 'bg-yellow-100 text-yellow-800',
     'Hủy thanh toán': 'bg-red-100 text-red-800',
   };
 
@@ -166,7 +237,8 @@ const OrdersPage = () => {
       ? orders.filter((o) => o.customer.toLowerCase().includes(searchQuery.toLowerCase()))
       : orders.filter((o) => {
           const map = {
-            processing: 'Đang xử lý',
+            pending: 'Đang xử lý',
+            shipping: 'Đang giao',
             success: 'Thành công',
             cancelled: 'Đã hủy',
           };
@@ -176,6 +248,11 @@ const OrdersPage = () => {
           );
         })
   );
+
+  const openDetailsModal = (order) => {
+    setSelectedOrder(order);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
     <AdminLayout>
@@ -188,7 +265,7 @@ const OrdersPage = () => {
             className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-2 px-4 rounded-lg flex items-center hover:scale-105 transition-transform"
             onClick={handleExportPDF}
           >
-            <Download size={18} className="mr-1 animate-pulse" />
+            <Download size={18} className="mr-2 animate-pulse" />
             Xuất báo cáo
           </button>
         </div>
@@ -198,13 +275,15 @@ const OrdersPage = () => {
             <nav className="flex space-x-6 overflow-x-auto">
               {[
                 { key: 'all', label: 'Tất cả', color: 'bg-gray-100', count: orders.length },
-                { key: 'processing', label: 'Đang xử lý', color: 'bg-yellow-100 text-yellow-800' },
+                { key: 'pending', label: 'Đang xử lý', color: 'bg-yellow-100 text-yellow-800' },
+                { key: 'shipping', label: 'Đang giao', color: 'bg-blue-100 text-blue-800' },
                 { key: 'success', label: 'Thành công', color: 'bg-green-100 text-green-800' },
                 { key: 'cancelled', label: 'Đã hủy', color: 'bg-red-100 text-red-800' },
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  className={`py-4 px-1 relative ${
+                  type="button"
+                  className={`py-4 px-4 relative ${
                     selectedTab === tab.key
                       ? 'text-blue-600 font-medium border-b-2 border-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
@@ -213,7 +292,7 @@ const OrdersPage = () => {
                 >
                   {tab.label}
                   <span
-                    className={`absolute top-3 right-0 text-xs px-1.5 rounded-full animate-pulse ${
+                    className={`absolute top-1 right-0 text-xs px-2 rounded-full animate-pulse ${
                       tab.color || ''
                     }`}
                   >
@@ -224,12 +303,12 @@ const OrdersPage = () => {
             </nav>
           </div>
 
-          <div className="p-4 border-b flex flex-col md:flex-row justify-between space-y-3 md:space-y-0">
+          <div className="p-4 border-b flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
             <div className="flex space-x-2">
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Tìm theo tên khách hàng..."
+                  placeholder="Tìm kiếm theo tên khách hàng..."
                   className="pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -238,9 +317,9 @@ const OrdersPage = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-500">Sắp xếp theo:</label>
+              <label className="text-sm text-gray-600">Sắp xếp theo:</label>
               <select
-                className="border rounded p-1 text-sm"
+                className="border rounded-md p-2 text-sm"
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
               >
@@ -263,127 +342,70 @@ const OrdersPage = () => {
                 <div className="p-6 text-center text-gray-500">Không có đơn hàng nào phù hợp.</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full">
+                  <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase flex items-center">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Mã đơn
-                          <ArrowUpDown size={14} className="ml-1" />
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Khách hàng
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase flex items-center">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Ngày đặt
-                          <ArrowUpDown size={14} className="ml-1" />
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Trạng thái
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Thanh toán
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase flex items-center">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Tổng tiền
-                          <ArrowUpDown size={14} className="ml-1" />
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Thao tác
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredOrders.map((order) => (
-                        <React.Fragment key={order.id}>
-                          <tr className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-blue-600">{order.id}</td>
-                            <td className="px-6 py-4 text-gray-700">{order.customer}</td>
-                            <td className="px-6 py-4 text-gray-700">{order.date}</td>
-                            <td className="px-6 py-4">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${
-                                  statusColors[order.status] || 'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {order.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${
-                                  paymentColors[order.payment] || 'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {order.payment}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-gray-700">
-                              {formatPrice(order.amount)}
-                              <div className="text-xs text-gray-400">{order.items.length} sản phẩm</div>
-                            </td>
-                            <td className="px-6 py-4 flex space-x-2">
-                              <button
-                                className="p-1 text-blue-600 hover:bg-blue-50 rounded flex items-center"
-                                onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}
-                              >
-                                <Eye size={16} className="mr-1" />
-                                Chi tiết
-                              </button>
-                              <button
-                                className="p-1 text-red-600 hover:bg-red-50 rounded flex items-center"
-                                onClick={() => handleCancelOrder(order.id, order.status)}
-                              >
-                                <Trash2 size={16} className="mr-1" />
-                                Hủy
-                              </button>
-                            </td>
-                          </tr>
-                          {selectedOrderId === order.id && (
-                            <tr>
-                              <td colSpan="7" className="px-6 py-4">
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <h3 className="text-lg font-semibold mb-4">Chi tiết đơn hàng #{order.id}</h3>
-                                  <table className="min-w-full">
-                                    <thead className="bg-gray-100">
-                                      <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                          Mã sản phẩm
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                          Số lượng
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                          Giá
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                          Tổng
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                      {order.items.length > 0 ? (
-                                        order.items.map((item, index) => (
-                                          <tr key={index}>
-                                            <td className="px-4 py-2">{item.productId || 'Không rõ tên'}</td>
-                                            <td className="px-4 py-2">{item.quantity}</td>
-                                            <td className="px-4 py-2">{formatPrice(item.price)}</td>
-                                            <td className="px-4 py-2">{formatPrice(item.price * item.quantity)}</td>
-                                          </tr>
-                                        ))
-                                      ) : (
-                                        <tr>
-                                          <td colSpan="4" className="px-4 py-2 text-center text-gray-500">
-                                            Không có sản phẩm nào.
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-blue-600">{order.id}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{order.customer}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{order.date}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                statusColors[order.status] || 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                paymentColors[order.payment] || 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {order.payment}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {formatPrice(order.amount)}
+                            <div className="text-xs text-gray-400">{order.items.length} sản phẩm</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => openDetailsModal(order)}
+                              className="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                            >
+                              <Eye size={16} className="mr-1" />
+                              Chi tiết
+                            </button>
+                          </td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>
@@ -403,6 +425,18 @@ const OrdersPage = () => {
             </div>
           </div>
         </div>
+
+        <OrderDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setSelectedOrder(null);
+          }}
+          order={selectedOrder}
+          onDeleteOrder={handleDeleteOrder}
+          onConfirmOrder={handleConfirmOrder}
+          formatPrice={formatPrice}
+        />
       </div>
     </AdminLayout>
   );

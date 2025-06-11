@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 @WebFilter(filterName = "JwtAdminFilter", urlPatterns = {
-    "/api/admin/management/users/*", "/api/admin/orders/*"
+    "/api/admin/management/users/*", "/api/admin/orders/*","/api/admin/orders/update-status"
 })
 public class JwtAdminFilter implements Filter {
     private final ObjectMapper objectMapper = new ObjectMapper();

@@ -27,9 +27,10 @@ public class CustomerOrderServlet extends HttpServlet {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static class OrderStatus {
-        public static final String PROCESSING = "Đang xử lý";
-        public static final String SUCCESS = "Thành công";
-        public static final String CANCELLED = "Đã hủy";
+        public static final String PENDING = "Pending";
+        public static final String SHIPPING = "Shipping";
+        public static final String SUCCESS = "Success";
+        public static final String CANCELLED = "Cancelled";
     }
 
     @Override
@@ -162,30 +163,32 @@ public class CustomerOrderServlet extends HttpServlet {
                 return;
             }
 
-            // Check if the current status allows updates
-            if ("Success".equals(currentStatus) || "Cancelled".equals(currentStatus)) {
+            // Kiểm tra trạng thái hiện tại và trạng thái mới có hợp lệ
+            if (OrderStatus.SUCCESS.equals(currentStatus) || OrderStatus.CANCELLED.equals(currentStatus)) {
                 sendErrorResponse(resp, "Không thể thay đổi trạng thái đơn hàng đã hoàn tất hoặc đã hủy", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
-            // If the current status is Pending, allow transition to Success or Cancelled
-            if ("Pending".equals(currentStatus)) {
-                if ("Success".equals(newStatus) || "Cancelled".equals(newStatus)) {
-                    boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
-                    if (updated) {
-                        sendJsonResponse(resp, ApiResponse.builder()
-                                .success(true)
-                                .message("Cập nhật trạng thái thành công")
-                                .data(Map.of("orderId", orderId, "status", newStatus))
-                                .build(), HttpServletResponse.SC_OK);
-                    } else {
-                        sendErrorResponse(resp, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    }
-                } else {
-                    sendErrorResponse(resp, "Trạng thái mới không hợp lệ: " + newStatus, HttpServletResponse.SC_BAD_REQUEST);
-                }
+            if (OrderStatus.PENDING.equals(currentStatus) && !OrderStatus.SHIPPING.equals(newStatus)) {
+                sendErrorResponse(resp, "Đơn hàng ở trạng thái 'Đang xử lý' chỉ có thể chuyển sang 'Đang giao'", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            if (OrderStatus.SHIPPING.equals(currentStatus) && 
+                !OrderStatus.SUCCESS.equals(newStatus) && !OrderStatus.CANCELLED.equals(newStatus)) {
+                sendErrorResponse(resp, "Đơn hàng ở trạng thái 'Đang giao' chỉ có thể chuyển sang 'Thành công' hoặc 'Đã hủy'", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
+            if (updated) {
+                sendJsonResponse(resp, ApiResponse.builder()
+                        .success(true)
+                        .message("Cập nhật trạng thái thành công")
+                        .data(Map.of("orderId", orderId, "status", newStatus))
+                        .build(), HttpServletResponse.SC_OK);
             } else {
-                sendErrorResponse(resp, "Không thể cập nhật trạng thái từ trạng thái hiện tại: " + currentStatus, HttpServletResponse.SC_BAD_REQUEST);
+                sendErrorResponse(resp, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         } catch (Exception e) {
             e.printStackTrace();

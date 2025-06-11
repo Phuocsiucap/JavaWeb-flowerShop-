@@ -24,7 +24,6 @@ import AdminLogin from './pages/admin/AdminLogin';
 import OrderReviewPage from './pages/OrderReviewPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import OrdersPage from './pages/admin/OrdersPage';
-import OrderDetailPage from './pages/admin/OrderDetailPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import RevenueReportPage from './pages/admin/RevenueReportPage';
 
