@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.model.Order;
-import com.model.OrderItem;
 import com.util.DatabaseConnection;
 
 public class OrderDAO {
@@ -18,10 +17,10 @@ public class OrderDAO {
         // Default constructor
     }
 
-    public int createOrderWithItems(Order order) {
+    // Tạo đơn hàng mới (chỉ thêm vào bảng orders)
+    public int createOrder(Order order) {
         Connection conn = null;
         PreparedStatement psOrder = null;
-        PreparedStatement psItem = null;
         ResultSet rs = null;
 
         try {
@@ -53,19 +52,6 @@ public class OrderDAO {
             int orderId = rs.getInt(1);
             order.setOrderId(orderId);
 
-            String sqlItem = "INSERT INTO orderitem (orderId, productId, productName, quantity, price, imageUrl) VALUES (?, ?, ?, ?, ?, ?)";
-            psItem = conn.prepareStatement(sqlItem);
-
-            for (OrderItem item : order.getItems()) {
-                psItem.setInt(1, orderId);
-                psItem.setInt(2, item.getProductId());
-                psItem.setString(3, item.getProductName());
-                psItem.setInt(4, item.getQuantity());
-                psItem.setDouble(5, item.getPrice());
-                psItem.setString(6, item.getImageUrl());
-                psItem.executeUpdate();
-            }
-
             conn.commit();
             return orderId;
 
@@ -76,54 +62,51 @@ public class OrderDAO {
         } finally {
             try { if (rs != null) rs.close(); } catch (SQLException ignore) {}
             try { if (psOrder != null) psOrder.close(); } catch (SQLException ignore) {}
-            try { if (psItem != null) psItem.close(); } catch (SQLException ignore) {}
             if (conn != null) {
-                try { 
-                    conn.setAutoCommit(true); 
-                } catch (SQLException ignore) {}
-                DatabaseConnection.returnConnection(conn);
+                try { conn.setAutoCommit(true); } catch (SQLException ignore) {}
+                DatabaseConnection.closeConnection();
             }
         }
     }
 
+    // Xóa đơn hàng và các mặt hàng liên quan
     public boolean deleteOrder(int orderId) {
-        String sqlDeleteItems = "DELETE FROM orderitem WHERE orderId = ?";
-        String sqlDeleteOrder = "DELETE FROM orders WHERE orderId = ?";
         Connection conn = null;
 
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            try (PreparedStatement psItem = conn.prepareStatement(sqlDeleteItems);
-                 PreparedStatement psOrder = conn.prepareStatement(sqlDeleteOrder)) {
+            // Xóa mặt hàng trước
+            OrderItemDAO orderItemDAO = new OrderItemDAO();
+            boolean itemsDeleted = orderItemDAO.deleteOrderItemsByOrderId(orderId);
+            if (!itemsDeleted) {
+                conn.rollback();
+                return false;
+            }
 
-                psItem.setInt(1, orderId);
-                psItem.executeUpdate();
-
+            // Xóa đơn hàng
+            String sqlDeleteOrder = "DELETE FROM orders WHERE orderId = ?";
+            try (PreparedStatement psOrder = conn.prepareStatement(sqlDeleteOrder)) {
                 psOrder.setInt(1, orderId);
                 int rows = psOrder.executeUpdate();
 
                 conn.commit();
                 return rows > 0;
-            } catch (SQLException e) {
-                conn.rollback();
-                e.printStackTrace();
-                return false;
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            try { if (conn != null) conn.rollback(); } catch (SQLException ignore) {}
             return false;
         } finally {
             if (conn != null) {
-                try { 
-                    conn.setAutoCommit(true); 
-                } catch (SQLException ignore) {}
-                DatabaseConnection.returnConnection(conn);
+                try { conn.setAutoCommit(true); } catch (SQLException ignore) {}
+                DatabaseConnection.closeConnection();
             }
         }
     }
 
+    // Lấy đơn hàng theo ID
     public Order getOrderById(int orderId) {
         String sql = "SELECT * FROM orders WHERE orderId = ?";
         Connection conn = null;
@@ -145,25 +128,22 @@ public class OrderDAO {
                         order.setShippingAddress(resultSet.getString("shippingAddress"));
                         order.setPhoneNumber(resultSet.getString("phoneNumber"));
 
-                        OrderItemDAO orderItemDAO = new OrderItemDAO();
-                        List<OrderItem> items = orderItemDAO.getOrderItemsByOrderId(orderId);
-                        order.setItems(items);
-
                         return order;
                     }
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error getting order: " + e.getMessage());
+            System.out.println("Lỗi khi lấy đơn hàng: " + e.getMessage());
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
 
         return null;
     }
 
+    // Cập nhật trạng thái đơn hàng
     public boolean updateOrderStatus(int orderId, String status) {
         String sql = "UPDATE orders SET status = ? WHERE orderId = ?";
         Connection conn = null;
@@ -178,15 +158,16 @@ public class OrderDAO {
                 return affectedRows > 0;
             }
         } catch (SQLException e) {
-            System.out.println("Error updating order status: " + e.getMessage());
+            System.out.println("Lỗi khi cập nhật trạng thái đơn hàng: " + e.getMessage());
             return false;
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
     }
 
+    // Lấy danh sách đơn hàng theo userId
     public List<Order> getOrdersByUserId(String userId) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT * FROM orders WHERE userId = ? ORDER BY orderDate DESC";
@@ -214,16 +195,17 @@ public class OrderDAO {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error getting orders by user ID: " + e.getMessage());
+            System.out.println("Lỗi khi lấy đơn hàng theo userId: " + e.getMessage());
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
 
         return orders;
     }
-    
+
+    // Lấy tất cả đơn hàng
     public List<Order> getAllOrders() {
         String sql = "SELECT * FROM orders";
         List<Order> orders = new ArrayList<>();
@@ -245,24 +227,21 @@ public class OrderDAO {
                     order.setShippingAddress(resultSet.getString("shippingAddress"));
                     order.setPhoneNumber(resultSet.getString("phoneNumber"));
 
-	                OrderItemDAO orderItemDAO = new OrderItemDAO();
-	                List<OrderItem> items = orderItemDAO.getOrderItemsByOrderId(order.getOrderId());
-	                order.setItems(items);
-
                     orders.add(order);
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error getting all orders: " + e.getMessage());
+            System.out.println("Lỗi khi lấy tất cả đơn hàng: " + e.getMessage());
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
 
         return orders;
     }
-    
+
+    // Lấy danh sách đơn hàng theo trạng thái
     public List<Order> getOrdersByStatus(String status) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT * FROM orders WHERE status = ? ORDER BY orderDate ASC";
@@ -289,15 +268,17 @@ public class OrderDAO {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error getting orders by status: " + e.getMessage());
+            System.out.println("Lỗi khi lấy đơn hàng theo trạng thái: " + e.getMessage());
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
 
         return orders;
     }
+
+    // Lấy danh sách đơn hàng theo trạng thái và ngày
     public List<Order> getOrdersByStatusAndDate(String status, java.util.Date fromDate) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT * FROM orders WHERE status = ? AND orderDate >= ? ORDER BY orderDate ASC";
@@ -321,24 +302,18 @@ public class OrderDAO {
                         order.setShippingAddress(resultSet.getString("shippingAddress"));
                         order.setPhoneNumber(resultSet.getString("phoneNumber"));
 
-                        // Lấy danh sách order item nếu cần
-                        OrderItemDAO orderItemDAO = new OrderItemDAO();
-                        List<OrderItem> items = orderItemDAO.getOrderItemsByOrderId(order.getOrderId());
-                        order.setItems(items);
-
                         orders.add(order);
                     }
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error getting orders by status and date: " + e.getMessage());
+            System.out.println("Lỗi khi lấy đơn hàng theo trạng thái và ngày: " + e.getMessage());
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+                DatabaseConnection.closeConnection();
             }
         }
 
         return orders;
     }
-
 }

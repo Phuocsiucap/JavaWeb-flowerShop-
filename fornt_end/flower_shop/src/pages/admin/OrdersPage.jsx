@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../../axiosInstance';
 import { Search, ArrowUpDown, Eye, Download, X, Trash2, CheckCircle } from 'lucide-react';
 import AdminLayout from '../../components/admin/Layout';
 import Cookies from 'js-cookie';
@@ -8,6 +7,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
 import OrderDetailsModal from '../../components/admin/OrderDetailsModal';
+import AlertNotification from '../../components/ui/AlertNotification';
 
 const OrdersPage = () => {
   const [selectedTab, setSelectedTab] = useState('all');
@@ -15,122 +15,181 @@ const OrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isTokenValid, setIsTokenValid] = useState(false);
+  const [notification, setNotification] = useState({
+    show: false,
+    type: '',
+    message: '',
+  });
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const { getUserById, adminToken, deleteOrder } = useAdmin();
+  const { verifyTokenAdmin, getUserById, getAllOrders, getOrderItems, updateOrderStatus, deleteOrder } = useAdmin();
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const token = Cookies.get('adminToken');
+    const checkToken = async () => {
       try {
-        const response = await axios.get(`/api/admin/orders`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        const token = Cookies.get('adminToken');
+        const valid = await verifyTokenAdmin(token);
+        setIsTokenValid(valid);
+        if (valid) {
+          fetchOrders();
+        } else {
+          setNotification({
+            show: true,
+            type: 'error',
+            message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
+          });
+        }
+      } catch (error) {
+        console.error('Lỗi khi xác thực token:', error);
+        setNotification({
+          show: true,
+          type: 'error',
+          message: 'Lỗi xác thực. Vui lòng thử lại.',
         });
-        const detailedOrders = await Promise.all(
-          response.data.data.orders.map(async (o) => {
-            const customer = o.userId ? await getUserById(o.userId) : null;
-            const statusMap = {
-              Pending: 'Đang xử lý',
-              Shipping: 'Đang giao',
-              Success: 'Thành công',
-              Cancelled: 'Đã hủy',
-            };
-            const status = statusMap[o.status] || o.status;
-            const paymentMap = {
-              'Đang xử lý': 'Chờ xử lý',
-              'Đang giao': 'Chờ thanh toán',
-              'Thành công': 'Đã thanh toán',
-              'Đã hủy': 'Hủy thanh toán',
-            };
-            return {
-              id: o.orderId,
-              customer: customer?.name || 'Ẩn danh',
-              date: new Date(o.orderDate).toLocaleDateString('vi-VN'),
-              status,
-              payment: paymentMap[status],
-              amount: o.totalAmount,
-              items: o.items || [],
-            };
-          })
-        );
-        setOrders(detailedOrders);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchOrders();
-  }, [getUserById, adminToken]);
+    checkToken();
+  }, [verifyTokenAdmin]);
 
-  const handleConfirmOrder = async (orderId) => {
-    const result = await Swal.fire({
-      title: 'Xác nhận đơn hàng?',
-      text: 'Trạng thái đơn hàng sẽ được chuyển sang "Đang giao".',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Xác nhận',
-      cancelButtonText: 'Hủy',
-    });
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const ordersResponse = await getAllOrders();
+      if (!ordersResponse.success) {
+        throw new Error(ordersResponse.message);
+      }
 
-    if (result.isConfirmed) {
-      try {
-        const token = Cookies.get('adminToken');
-        const response = await axios.put(
-          `/api/admin/orders/update-status`,
-          { orderId, status: 'Shipping' }, 
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
+      const detailedOrders = await Promise.all(
+        ordersResponse.data.map(async (o) => {
+          let customerName = 'Ẩn danh';
+          if (o.userId) {
+            const customerResponse = await getUserById(o.userId);
+            if (customerResponse && customerResponse.name) {
+              customerName = customerResponse.name;
+            }
           }
+          let items = [];
+          const itemsKey = `order_items_${o.orderId}`;
+          const cachedItems = localStorage.getItem(itemsKey);
+          if (cachedItems) {
+            items = JSON.parse(cachedItems);
+          }
+          // Nếu không có items hoặc items rỗng, luôn gọi lại API để lấy mới
+          if (!items || items.length === 0) {
+            const itemsResponse = await getOrderItems(o.orderId);
+            items = itemsResponse.success ? itemsResponse.data : [];
+            localStorage.setItem(itemsKey, JSON.stringify(items));
+          }
+          const statusMap = {
+            Pending: 'Đang xử lý',
+            Shipping: 'Đang giao',
+            Success: 'Thành công',
+            Cancelled: 'Đã hủy',
+          };
+          const status = statusMap[o.status] || o.status;
+          const paymentMap = {
+            'Đang xử lý': 'Chờ xử lý',
+            'Đang giao': 'Chờ thanh toán',
+            'Thành công': 'Đã thanh toán',
+            'Đã hủy': 'Hủy thanh toán',
+          };
+          return {
+            id: o.orderId,
+            customer: customerName,
+            date: new Date(o.orderDate).toLocaleDateString('vi-VN'),
+            status,
+            payment: paymentMap[status],
+            amount: o.totalAmount,
+            items,
+          };
+        })
+      );
+      setOrders(detailedOrders);
+      
+    } catch (err) {
+      console.error('Lỗi khi lấy đơn hàng:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const handleConfirmOrder = async (orderId) => {
+  const result = await Swal.fire({
+    title: 'Xác nhận đơn hàng?',
+    text: 'Trạng thái đơn hàng sẽ được chuyển sang "Đang giao".',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận',
+    cancelButtonText: 'Hủy',
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await updateOrderStatus(orderId, 'Shipping');
+      if (response.success) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === orderId
+              ? { ...order, status: 'Đang giao', payment: 'Chờ thanh toán' }
+              : order
+          )
         );
-        if (response.data.success) {
-          setOrders((prevOrders) =>
-            prevOrders.map((order) =>
-              order.id === orderId
-                ? { ...order, status: 'Đang giao', payment: 'Chờ thanh toán' }
-                : order
-            )
-          );
-          setSelectedOrder((prev) =>
-            prev && prev.id === orderId
-              ? { ...prev, status: 'Đang giao', payment: 'Chờ thanh toán' }
-              : prev
-          );
-          Swal.fire({
-            icon: 'success',
-            title: 'Thành công',
-            text: 'Đơn hàng đã được xác nhận!',
-          });
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: response.data.message || 'Không thể xác nhận đơn hàng!',
-          });
-        }
-      } catch (err) {
-        Swal.fire({
+        setSelectedOrder((prev) =>
+          prev && prev.id === orderId
+            ? { ...prev, status: 'Đang giao', payment: 'Chờ thanh toán' }
+            : prev
+        );
+        // Existing notification
+        setNotification({
+          show: true,
+          type: 'success',
+          message: response.message || 'Đơn hàng đã được xác nhận!',
+        });
+        // New SweetAlert2 success dialog
+        await Swal.fire({
+          title: 'Thành công!',
+          text: response.message || 'Đơn hàng đã được xác nhận và chuyển sang trạng thái "Đang giao".',
+          icon: 'success',
+          confirmButtonText: 'OK',
+        });
+      } else {
+        setNotification({
+          show: true,
+          type: 'error',
+          message: response.message || 'Không thể xác nhận đơn hàng!',
+        });
+        await Swal.fire({
+          title: 'Lỗi!',
+          text: response.message || 'Không thể xác nhận đơn hàng.',
           icon: 'error',
-          title: 'Lỗi',
-          text: err.response?.data?.message || 'Không thể xác nhận đơn hàng!',
+          confirmButtonText: 'OK',
         });
       }
+    } catch (err) {
+      setNotification({
+        show: true,
+        type: 'error',
+        message: err.message || 'Không thể xác nhận đơn hàng!',
+      });
+      await Swal.fire({
+        title: 'Lỗi!',
+        text: err.message || 'Không thể xác nhận đơn hàng.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
     }
+  }
   };
 
   const handleDeleteOrder = async (orderId, status) => {
     if (status === 'Đang xử lý' || status === 'Đang giao') {
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: `Không thể xóa đơn hàng ở trạng thái ${status}!`,
+      setNotification({
+        show: true,
+        type: 'error',
+        message: `Không thể xóa đơn hàng ở trạng thái ${status}!`,
       });
       return;
     }
@@ -150,24 +209,24 @@ const OrdersPage = () => {
           setOrders(orders.filter((order) => order.id !== orderId));
           setIsDetailsModalOpen(false);
           setSelectedOrder(null);
-          Swal.fire({
-            icon: 'success',
-            title: 'Đã xóa',
-            text: response.message,
+          setNotification({
+            show: true,
+            type: 'success',
+            message: response.message || 'Xóa đơn hàng thành công!',
           });
         } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: response.message || 'Không thể xóa đơn hàng!',
+          setNotification({
+            show: true,
+            type: 'error',
+            message: response.message || 'Không thể xóa đơn hàng!',
           });
         }
       } catch (err) {
         console.error('Lỗi khi xóa đơn hàng:', err);
-        Swal.fire({
-          icon: 'error',
-          title: 'Lỗi',
-          text: err.message || 'Không thể xóa đơn hàng!',
+        setNotification({
+          show: true,
+          type: 'error',
+          message: err.message || 'Không thể xóa đơn hàng!',
         });
       }
     }
@@ -189,7 +248,12 @@ const OrdersPage = () => {
       const pdfWidth = pageWidth - 40;
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, 'PNG', 20, 20, pdfWidth, pdfHeight);
-      pdf.save('bao-cao-doanh-thu.pdf');
+      pdf.save('bao-cao-don-hang.pdf');
+    });
+    setNotification({
+      show: true,
+      type: 'success',
+      message: 'Xuất báo cáo PDF thành công!',
     });
   };
 
@@ -254,8 +318,25 @@ const OrdersPage = () => {
     setIsDetailsModalOpen(true);
   };
 
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
+      {notification.show && (
+        <AlertNotification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification({ ...notification, show: false })}
+        />
+      )}
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -331,12 +412,13 @@ const OrdersPage = () => {
             </div>
           </div>
 
-          {loading && (
-            <div className="p-4 text-center text-gray-500 animate-pulse">Đang tải đơn hàng...</div>
+          {!isTokenValid && (
+            <div className="p-6 text-center text-red-500">
+              Vui lòng đăng nhập để xem đơn hàng.
+            </div>
           )}
-          {error && <div className="p-4 text-center text-red-500">Lỗi: {error}</div>}
 
-          {!loading && !error && (
+          {isTokenValid && (
             <>
               {filteredOrders.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">Không có đơn hàng nào phù hợp.</div>

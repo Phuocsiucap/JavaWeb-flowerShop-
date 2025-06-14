@@ -9,6 +9,7 @@ import TopProductsList from '../../components/admin/dashboard/TopProductsList';
 import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTable';
 import StatsGrid from '../../components/admin/dashboard/StatsGrid';
 import axios from '../../axiosInstance';
+import Cookies from 'js-cookie';
 
 const Dashboard = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -30,8 +31,16 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
-        const users = await getAllUsers();
-        const customers = users.filter((user) => user.role === 'customer');
+        let usersArr = [];
+        const cachedUsers = Cookies.get('dashboard_users');
+        if (cachedUsers) {
+          usersArr = JSON.parse(cachedUsers);
+        } else {
+          const usersResponse = await getAllUsers();
+          usersArr = Array.isArray(usersResponse) ? usersResponse : [];
+          Cookies.set('dashboard_users', JSON.stringify(usersArr));
+        }
+        const customers = usersArr.filter((user) => user.role === 'customer');
         setTotalCustomers(customers.length);
 
         const today = new Date();
@@ -45,30 +54,51 @@ const Dashboard = () => {
         const newToday = customers.filter((user) => {
           const createdAt = new Date(user.createdAt);
           return createdAt >= startOfToday && createdAt <= endOfToday;
-        });
+        }).length;
         const newYesterday = customers.filter((user) => {
           const createdAt = new Date(user.createdAt);
           return createdAt >= startOfYesterday && createdAt <= endOfYesterday;
-        });
-        setNewCustomersToday(newToday.length);
-        setNewCustomersYesterday(newYesterday.length);
+        }).length;
+        setNewCustomersToday(newToday);
+        setNewCustomersYesterday(newYesterday);
 
-        const sortedUsers = [...users]
+        const sortedUsers = [...usersArr]
           .sort((a, b) => {
             if (!a.lastLogin) return 1;
             if (!b.lastLogin) return -1;
             return new Date(b.lastLogin) - new Date(a.lastLogin);
           })
-          .slice(0, 5);
+          .slice(0, 5)
+          .map(user => ({
+            ...user,
+            name: user.name || 'Không có tên',
+          }));
         setRecentUsers(sortedUsers);
       } catch (error) {
-        console.error('Error fetching users data:', error);
-        setError('Failed to load user data.');
+        console.error('Error fetching users data:', error.response || error.message);
+        setError('Không thể tải dữ liệu người dùng.');
       }
     };
 
     const fetchOrdersData = async () => {
       try {
+        let ordersArr = [];
+        const cachedOrders = Cookies.get('dashboard_orders');
+        if (cachedOrders) {
+          ordersArr = JSON.parse(cachedOrders);
+        } else {
+          const ordersResponse = await getAllOrders();
+          ordersArr = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+          Cookies.set('dashboard_orders', JSON.stringify(ordersArr));
+        }
+        let orders = ordersArr.map(order => ({
+          ...order,
+          orderDate: order.orderDate || order.createdAt || new Date().toISOString(),
+          totalAmount: order.totalAmount || 0,
+          userId: order.userId || null,
+          items: Array.isArray(order.items) ? order.items : [],
+        }));
+
         const today = new Date();
         const startOfToday = new Date(today.setHours(0, 0, 0, 0));
         const endOfToday = new Date(today.setHours(23, 59, 59, 999));
@@ -77,12 +107,20 @@ const Dashboard = () => {
         const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
         const endOfYesterday = new Date(yesterday.setHours(23, 59, 59, 999));
 
-        // Fetch all orders (đã có đủ items từ API mới)
-        const orders = await getAllOrders();
-        // Map lại cho đúng format
         const mappedOrders = await Promise.all(
           orders.map(async (order) => {
-            const customer = order.userId ? await getUserById(order.userId) : null;
+            let customer = null;
+            if (order.userId) {
+              try {
+                const userResponse = await getUserById(order.userId);
+                customer = userResponse || null;
+                if (customer) {
+                  customer.name = customer.name || 'Không có tên';
+                }
+              } catch (error) {
+                console.warn(`Error fetching user ${order.userId}:`, error);
+              }
+            }
             return {
               ...order,
               createdAt: new Date(order.orderDate),
@@ -92,7 +130,6 @@ const Dashboard = () => {
           })
         );
 
-        // Orders today and yesterday
         const ordersTodayList = mappedOrders.filter((order) => {
           const createdAt = new Date(order.createdAt);
           return createdAt >= startOfToday && createdAt <= endOfToday;
@@ -104,70 +141,77 @@ const Dashboard = () => {
         setOrdersToday(ordersTodayList.length);
         setOrdersYesterday(ordersYesterdayList.length);
 
-        // Revenue today and yesterday
         setRevenueToday(ordersTodayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
         setRevenueYesterday(ordersYesterdayList.reduce((sum, order) => sum + (order.totalPrice || 0), 0));
 
-        // Products sold today and yesterday
         setProductsSoldToday(
           ordersTodayList.reduce(
-            (sum, order) =>
-              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            (sum, order) => sum + (order.items.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
             0
           )
         );
         setProductsSoldYesterday(
           ordersYesterdayList.reduce(
-            (sum, order) =>
-              sum + (order.items?.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
+            (sum, order) => sum + (order.items.reduce((total, item) => total + (item.quantity || 0), 0) || 0),
             0
           )
         );
 
-        // Recent orders
         const recentOrdersList = mappedOrders
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 3); 
+          .slice(0, 3);
         setRecentOrders(recentOrdersList);
 
-        // Top products
+        // Tính toán top 3 sản phẩm bán chạy nhất từ tất cả order items
         const productSales = {};
-        const productNames = {};
+        const productDetails = {};
         mappedOrders.forEach((order) => {
-          if (order.items) {
-            order.items.forEach((item) => {
+          (order.items || []).forEach((item) => {
+            if (item.productId) {
               productSales[item.productId] = (productSales[item.productId] || 0) + (item.quantity || 0);
-              productNames[item.productId] = item.productName || `Sản phẩm ${item.productId}`;
-            });
-          }
+              // Lưu thông tin sản phẩm (ưu tiên lần đầu gặp)
+              if (!productDetails[item.productId]) {
+                productDetails[item.productId] = {
+                  name: item.productName || `Sản phẩm ${item.productId}`,
+                  imageUrl: item.imageUrl || null,
+                  price: item.price || 0,
+                };
+              }
+            }
+          });
         });
+        // Lấy 3 sản phẩm bán chạy nhất
         const topProductIds = Object.entries(productSales)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
+          .slice(0, 3)
           .map(([id]) => id);
         const topProductsList = topProductIds.map((id) => ({
           id,
-          name: productNames[id],
+          name: productDetails[id].name,
           sold: productSales[id],
-          imageUrl: mappedOrders
-            .flatMap((order) => order.items || [])
-            .find((item) => item.productId === id)?.imageUrl,
+          imageUrl: productDetails[id].imageUrl,
+          price: productDetails[id].price,
         }));
         setTopProducts(topProductsList);
       } catch (error) {
-        console.error('Error fetching orders data:', error);
-        setError('Failed to load order data.');
+        console.error('Error fetching orders data:', error.response || error.message);
+        setError('Không thể tải dữ liệu đơn hàng.');
       }
     };
 
     const fetchData = async () => {
-      if (!adminToken) return;
+      if (!adminToken) {
+        setError('Chưa đăng nhập');
+        return;
+      }
+      console.log('Admin token:', adminToken);
       setIsLoading(true);
       setError(null);
       try {
         await Promise.all([fetchUsersData(), fetchOrdersData()]);
       } catch (error) {
-        setError('Failed to load dashboard data.');
+        console.error('Error fetching dashboard data:', error);
+        setError('Không thể tải dữ liệu dashboard.');
       } finally {
         setIsLoading(false);
       }
@@ -232,27 +276,29 @@ const Dashboard = () => {
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
   };
 
-  if (isLoading) return <div className="p-6">Loading...</div>;
+  if (isLoading) return <div className="p-6">Đang tải...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <AppLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">Tổng quan</h1>
-
-        {/* Stats Grid */}
         <StatsGrid stats={stats} totalCustomers={totalCustomers} />
-
-        {/* Recent Orders */}
         <RecentOrdersTable orders={recentOrders} />
-
-        {/* Recent Users */}
         <RecentUsersTable users={recentUsers} />
-
-        {/* Sales Chart and Top Products */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <SalesChart orders={recentOrders} />
-          <TopProductsList products={topProducts} />
+        <div className="bg-white p-4 rounded-lg shadow mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">Thống kê doanh số (₫)</h2>
+            <Link
+              to="/admin/reports"
+              className="text-blue-600 hover:underline text-sm"
+            >
+              Xem tất cả
+            </Link>
+          </div>
+          <div className="h-64">
+            <SalesChart orders={recentOrders} />
+          </div>
         </div>
       </div>
     </AppLayout>

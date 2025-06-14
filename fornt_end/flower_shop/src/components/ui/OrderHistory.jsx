@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import axios from '../../axiosInstance';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
+import { AuthContext } from '../../contexts/AuthContext';
+import CustomerOrderModal from '../admin/users/CustomerOrderModal';
 
 const OrderHistory = ({ orders, fetchUserOrders }) => {
+  const { getOrderItems, updateOrderStatus } = useContext(AuthContext);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
   const [error, setError] = useState(null);
   const [searchDate, setSearchDate] = useState('');
   const [filteredOrders, setFilteredOrders] = useState(orders);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const statusMap = {
     Pending: 'Đang xử lý',
@@ -17,24 +20,17 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
     Cancelled: 'Đã hủy',
   };
 
-  // Update filteredOrders when orders change or when clearing filter
   useEffect(() => {
     setFilteredOrders(orders);
-    // Debug: log all order statuses received from API
     if (orders && orders.length > 0) {
-      console.log('Order statuses received from API:', orders.map(o => ({ id: o.id, status: o.status })));
+      console.log('Order statuses received from API:', orders.map((o) => ({ id: o.id, status: o.status })));
     }
   }, [orders]);
 
   const fetchOrderItems = async (orderId) => {
     try {
-      const response = await axios.get(`/api/customer/orders/${orderId}/items`, {
-        headers: {
-          'Authorization': `Bearer ${Cookies.get('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      setOrderItems(response.data.data.items || []);
+      const items = await getOrderItems(orderId);
+      setOrderItems(items || []);
       setError(null);
     } catch (err) {
       setError('Không thể tải chi tiết đơn hàng. Vui lòng thử lại!');
@@ -59,34 +55,22 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
         setError('Token không hợp lệ hoặc không tồn tại!');
         return;
       }
-
       const order = orders.find((o) => o.id === orderId);
       if (!order) throw new Error('Đơn hàng không tồn tại');
-
-      // Allow transitions only from "Shipping" to "Success" or "Cancelled"
       if (order.status !== 'Shipping') {
-        setError(`Không thể chuyển trạng thái từ "${statusMap[order.status] || order.status}" sang "${statusMap[newStatus] || newStatus}". Chỉ đơn hàng \"Đang giao\" mới được phép.`);
+        setError(
+          `Không thể chuyển trạng thái từ "${statusMap[order.status] || order.status}" sang "${
+            statusMap[newStatus] || newStatus
+          }". Chỉ đơn hàng "Đang giao" mới được phép.`
+        );
         return;
       }
-
-      const updateResponse = await axios.put(
-        `/api/customer/orders/update-status`,
-        { orderId, status: newStatus },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (updateResponse.data.success) {
-        fetchUserOrders(); // Refresh order list
-        setSelectedOrderId(null);
-        setOrderItems([]);
-      } else {
-        throw new Error(updateResponse.data.message || 'Cập nhật trạng thái thất bại');
-      }
+      await updateOrderStatus(orderId, newStatus);
+      fetchUserOrders();
+      setSelectedOrderId(null);
+      setOrderItems([]);
+      setSuccessMsg(newStatus === 'Success' ? 'Thanh toán thành công!' : 'Đơn hàng đã được hủy!');
+      setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setError(err.message || 'Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại!');
     }
@@ -113,12 +97,12 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
       currency: 'VND',
     }).format(price);
 
-  // Placeholder image for missing or invalid imageUrl
   const placeholderImage = 'https://via.placeholder.com/50?text=No+Image';
 
   return (
     <div>
       {error && <div className="text-red-500 mb-4">{error}</div>}
+      {successMsg && <div className="text-green-600 mb-4 font-semibold">{successMsg}</div>}
 
       {/* Date search filter */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:space-x-4 bg-gradient-to-r from-emerald-100 via-emerald-50 to-white p-6 rounded-2xl shadow-lg border border-emerald-100 animate-fade-in">
@@ -196,123 +180,31 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
               {filteredOrders.map((order) => {
                 const statusVi = statusMap[order.status] || order.status;
                 return (
-                  <React.Fragment key={order.id}>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPrice(order.total)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            statusVi === 'Thành công'
-                              ? 'bg-green-100 text-green-800'
-                              : statusVi === 'Đã hủy'
-                              ? 'bg-red-100 text-red-800'
-                              : statusVi === 'Đang giao'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {statusVi}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-4">
-                        <button onClick={() => handleViewDetails(order.id)} className="hover:text-emerald-800">
-                          {selectedOrderId === order.id ? 'Đóng chi tiết' : 'Xem chi tiết'}
-                        </button>
-                      </td>
-                    </tr>
-                    {selectedOrderId === order.id && (
-                      <tr>
-                        <td colSpan="5" className="px-6 py-4">
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold mb-4 text-emerald-700">Chi tiết đơn hàng #{order.id}</h3>
-                            <table className="min-w-full">
-                              <thead className="bg-gray-100">
-                                <tr>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Hình ảnh
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Mã sản phẩm
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Tên sản phẩm
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Số lượng
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Giá
-                                  </th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">
-                                    Tổng cộng
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {orderItems.length > 0 ? (
-                                  orderItems.map((item, index) => (
-                                    <tr key={index}>
-                                      <td className="px-4 py-2">
-                                        <img
-                                          src={item.imageUrl || placeholderImage}
-                                          alt={item.productName || 'Product Image'}
-                                          className="w-12 h-12 object-cover rounded"
-                                          onError={(e) => {
-                                            e.target.src = placeholderImage;
-                                          }}
-                                        />
-                                      </td>
-                                      <td className="px-4 py-2 text-sm text-gray-700">{item.productId || 'Unknown'}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-700">{item.productName || 'Unknown Product'}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-700">{item.quantity}</td>
-                                      <td className="px-4 py-2 text-sm">{formatPrice(item.price)}</td>
-                                      <td className="px-4 py-2 text-sm">{formatPrice(item.price * item.quantity)}</td>
-                                    </tr>
-                                  ))
-                                ) : (
-                                  <tr>
-                                    <td colSpan="6" className="px-4 py-2 text-center text-gray-600">
-                                      Không tìm thấy sản phẩm.
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                            <div className="mt-6 flex space-x-4">
-                              {order.status === 'Shipping' && (
-                                <>
-                                  <button
-                                    onClick={() => handleUpdateStatus(order.id, 'Success')}
-                                    className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
-                                    title="Chuyển trạng thái sang Thành công"
-                                  >
-                                    Thanh toán
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
-                                    className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                                    title="Chuyển trạng thái sang Đã hủy"
-                                  >
-                                    Hủy đơn hàng
-                                  </button>
-                                </>
-                              )}
-                              {(order.status === 'Success') && (
-                                <Link
-                                  to={`/order/${order.id}/review`}
-                                  className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
-                                >
-                                  Đánh giá
-                                </Link>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={order.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPrice(order.total)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          statusVi === 'Thành công'
+                            ? 'bg-green-100 text-green-800'
+                            : statusVi === 'Đã hủy'
+                            ? 'bg-red-100 text-red-800'
+                            : statusVi === 'Đang giao'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {statusVi}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 flex space-x-4">
+                      <button onClick={() => handleViewDetails(order.id)} className="hover:text-emerald-800">
+                        Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
@@ -326,6 +218,18 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
           </Link>
         </div>
       )}
+
+      <CustomerOrderModal
+        isOpen={!!selectedOrderId}
+        onClose={() => {
+          setSelectedOrderId(null);
+          setOrderItems([]);
+        }}
+        order={filteredOrders.find((o) => o.id === selectedOrderId)}
+        orderItems={orderItems}
+        handleUpdateStatus={handleUpdateStatus}
+        formatPrice={formatPrice}
+      />
     </div>
   );
 };

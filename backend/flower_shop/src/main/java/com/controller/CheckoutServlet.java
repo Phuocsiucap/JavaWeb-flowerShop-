@@ -1,6 +1,7 @@
 package com.controller;
 
 import com.dao.OrderDAO;
+import com.dao.OrderItemDAO;
 import com.dao.ProductDAO;
 import com.dao.ProductDAOImpl;
 import com.dao.UserDao;
@@ -27,6 +28,7 @@ public class CheckoutServlet extends HttpServlet {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderDAO orderDAO = new OrderDAO();
+    private final OrderItemDAO orderItemDAO = new OrderItemDAO();
     private final ProductDAO productDAO = new ProductDAOImpl();
     private final AuthService authService = new AuthServiceImpl(new UserDao(), null);
 
@@ -80,13 +82,19 @@ public class CheckoutServlet extends HttpServlet {
             order.setPhoneNumber(checkout.phoneNumber);
             order.setPaymentMethod(checkout.paymentMethod);
             order.setTotalAmount(totalAmount);
-            order.setStatus("Pending");
-            order.setItems(checkout.items);
 
             // Lưu đơn hàng
-            int orderId = orderDAO.createOrderWithItems(order);
+            int orderId = orderDAO.createOrder(order);
             if (orderId <= 0) {
                 sendErrorResponse(response, "Tạo đơn hàng thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
+
+            // Lưu các mặt hàng
+            boolean itemsSaved = orderItemDAO.createOrderItems(orderId, checkout.items);
+            if (!itemsSaved) {
+                orderDAO.deleteOrder(orderId); // Rollback nếu lưu mặt hàng thất bại
+                sendErrorResponse(response, "Lưu mặt hàng thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
 
@@ -94,7 +102,7 @@ public class CheckoutServlet extends HttpServlet {
             for (OrderItem item : checkout.items) {
                 boolean success = productDAO.decreaseStock(item.getProductId(), item.getQuantity());
                 if (!success) {
-                    orderDAO.deleteOrder(orderId);
+                    orderDAO.deleteOrder(orderId); // Rollback nếu trừ kho thất bại
                     sendErrorResponse(response,
                             "Sản phẩm '" + item.getProductName() + "' không đủ hàng",
                             HttpServletResponse.SC_CONFLICT);

@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 import { AuthContext } from '../../contexts/AuthContext';
 
 const OrderReview = ({ orderId }) => {
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, getOrderItems } = useContext(AuthContext);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,6 +14,8 @@ const OrderReview = ({ orderId }) => {
   const [orderReviews, setOrderReviews] = useState([]);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [isOrderOwner, setIsOrderOwner] = useState(false);
+  const [orderItems, setOrderItems] = useState([]);
+  const [userChecked, setUserChecked] = useState(false);
   
   // Review form state
   const [reviewForm, setReviewForm] = useState({
@@ -26,12 +28,14 @@ const OrderReview = ({ orderId }) => {
   });
 
   useEffect(() => {
+    // Đợi xác thực user xong mới gọi API
+    if (currentUser === undefined) return; // Đang xác thực
+    if (!currentUser || !orderId) {
+      setLoading(false);
+      setUserChecked(true);
+      return;
+    }
     const fetchOrderDetails = async () => {
-      if (!currentUser || !orderId) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         
@@ -44,6 +48,10 @@ const OrderReview = ({ orderId }) => {
         
         const orderData = orderResponse.data.data.order;
         setOrder(orderData);
+        
+        // Lấy chi tiết sản phẩm trong đơn
+        const items = await getOrderItems(orderId);
+        setOrderItems(items);
         
         // Check if current user is order owner
         if (orderData.userId === currentUser.id) {
@@ -71,10 +79,12 @@ const OrderReview = ({ orderId }) => {
         }
         
         setLoading(false);
+        setUserChecked(true);
       } catch (err) {
         console.error('Error:', err);
         setError('Đã xảy ra lỗi khi tải thông tin đơn hàng. Vui lòng thử lại sau.');
         setLoading(false);
+        setUserChecked(true);
       }
     };
 
@@ -218,11 +228,20 @@ const OrderReview = ({ orderId }) => {
       </div>
     );
   }
+
+  if (!userChecked) {
+    return (
+      <div className="py-4 text-center">
+        <div className="text-gray-600">Đang xác thực người dùng...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
         <ShoppingBag size={24} className="mr-2" />
-        Đánh giá đơn hàng #{order.orderNumber}
+        Đánh giá đơn hàng #{order.orderId}
       </h2>
       
       {/* Order Summary */}
@@ -233,7 +252,7 @@ const OrderReview = ({ orderId }) => {
             <div className="mt-2">
               <div className="flex items-center text-sm mb-1">
                 <ShoppingBag size={14} className="mr-2 text-gray-500" />
-                <span className="text-gray-600">Mã đơn hàng: <span className="font-medium">{order.orderNumber}</span></span>
+                <span className="text-gray-600">Mã đơn hàng: <span className="font-medium">{order.orderId}</span></span>
               </div>
               <div className="flex items-center text-sm mb-1">
                 <Clock size={14} className="mr-2 text-gray-500" />
@@ -249,8 +268,8 @@ const OrderReview = ({ orderId }) => {
           <div>
             <h3 className="font-medium text-gray-700">Sản phẩm trong đơn:</h3>
             <div className="mt-2 space-y-2">
-              {order.items && order.items.map((item) => (
-                <div key={item.id} className="flex items-center text-sm">
+              {orderItems && orderItems.length > 0 ? orderItems.map((item) => (
+                <div key={item.id || item.productId} className="flex items-center text-sm">
                   <div className="w-8 h-8 bg-gray-200 rounded overflow-hidden mr-2">
                     {item.imageUrl && (
                       <img 
@@ -265,7 +284,7 @@ const OrderReview = ({ orderId }) => {
                     {item.name} x {item.quantity}
                   </span>
                 </div>
-              ))}
+              )) : <span className="text-gray-500">Không có sản phẩm nào trong đơn.</span>}
             </div>
           </div>
         </div>

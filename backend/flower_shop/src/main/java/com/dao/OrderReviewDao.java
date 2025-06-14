@@ -47,7 +47,7 @@ public class OrderReviewDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -92,7 +92,7 @@ public class OrderReviewDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
         
@@ -136,7 +136,7 @@ public class OrderReviewDao {
             return null;
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -160,7 +160,7 @@ public class OrderReviewDao {
             return false;
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -208,7 +208,7 @@ public class OrderReviewDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 

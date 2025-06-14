@@ -1,9 +1,6 @@
 package com.model;
 
 import java.util.Date;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
 
 public class Order {
     private int orderId;
@@ -12,12 +9,10 @@ public class Order {
     private double totalAmount;
     private String status; // Pending, Paid, Cancelled,Shipping
     private String paymentMethod; // Cash, Credit Card, Banking
-    private List<OrderItem> items;
     private String shippingAddress;
     private String phoneNumber;
 
     public Order() {
-    	this.items = Collections.synchronizedList(new ArrayList<>());
         this.orderDate = new Date();
         this.status = "Pending";
     }
@@ -29,7 +24,6 @@ public class Order {
         this.totalAmount = totalAmount;
         this.status = "Pending";
         this.paymentMethod = paymentMethod;
-        this.items = new ArrayList<>();
         this.shippingAddress = shippingAddress;
         this.phoneNumber = phoneNumber;
     }
@@ -83,17 +77,6 @@ public class Order {
         this.paymentMethod = paymentMethod;
     }
 
-    public List<OrderItem> getItems() {
-        return items;
-    }
-
-    public void setItems(List<OrderItem> items) {
-        this.items = items;
-    }
-    
-    public void addItem(OrderItem item) {
-        this.items.add(item);
-    }
 
     public String getShippingAddress() {
         return shippingAddress;

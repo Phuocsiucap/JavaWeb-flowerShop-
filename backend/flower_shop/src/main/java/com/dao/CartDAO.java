@@ -33,7 +33,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
         return Optional.empty();
@@ -61,7 +61,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
         return -1; // Trả về -1 nếu lỗi
@@ -95,7 +95,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
         return Optional.empty();
@@ -121,7 +121,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -146,7 +146,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -167,7 +167,7 @@ public class CartDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }

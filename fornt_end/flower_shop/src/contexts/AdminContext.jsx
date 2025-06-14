@@ -62,7 +62,11 @@ export const AdminProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${adminToken}` },
         params: filters
       });
-      return res.data.data.users;
+      // Đảm bảo luôn trả về mảng
+      if (res.data && res.data.data && Array.isArray(res.data.data.users)) {
+        return res.data.data.users;
+      }
+      return [];
     } catch (error) {
       console.error("Error fetching users:", error);
       return [];
@@ -151,54 +155,135 @@ export const AdminProvider = ({ children }) => {
     }
   };
 
-  const getAllOrders = async (filters = {}) => {
+const getAllOrders = async (filters = {}) => {
+    if (!adminToken) {
+      return { success: false, message: 'Chưa đăng nhập', data: [] };
+    }
     try {
-      const res = await axios.get('api/admin/orders/', {
+      const res = await axios.get('/api/admin/orders', {
         headers: { Authorization: `Bearer ${adminToken}` },
-        params: filters
+        params: filters,
       });
-      // Đảm bảo trả về danh sách Map từ OrderMapper
-      return res.data.data.orders || []; // Thêm kiểm tra null để tránh lỗi
+      return {
+        success: true,
+        message: 'Lấy danh sách đơn hàng thành công',
+        data: res.data.data.orders || [],
+      };
     } catch (error) {
-      console.error("Error fetching orders:", error);
-      return [];
+      console.error('Lỗi khi lấy đơn hàng:', error.response?.data?.message || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể lấy danh sách đơn hàng',
+        data: [],
+      };
     }
   };
 
-  // const getOrderItems = async (orderId) => {
-  //   try {
-  //     const res = await axios.get(`api/orders/${orderId}/items`, {
-  //       headers: { Authorization: `Bearer ${adminToken}` }
-  //     });
-  //     // Đảm bảo trả về danh sách Map từ OrderItemMapper
-  //     return res.data.data.items || []; // Thêm kiểm tra null để tránh lỗi
-  //   } catch (error) {
-  //     console.error(`Error fetching items for order ${orderId}:`, error.response?.data?.message || error.message);
-  //     return [];
-  //   }
-  // };
-
-  const deleteOrder = async (orderId) => {
+  const getOrderItems = async (orderId) => {
+    if (!adminToken) {
+      return { success: false, message: 'Chưa đăng nhập', data: [] };
+    }
+    if (!orderId) {
+      return { success: false, message: 'Thiếu orderId', data: [] };
+    }
     try {
-      const res = await axios.delete(`api/admin/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${adminToken}` }
+      const res = await axios.get(`/api/admin/orders/${orderId}/items`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
-      // Trả về dữ liệu để frontend có thể xử lý (ví dụ: cập nhật trạng thái)
+      return {
+        success: true,
+        message: 'Lấy danh sách mặt hàng thành công',
+        data: res.data.data.items || [],
+      };
+    } catch (error) {
+      console.error(`Lỗi khi lấy mặt hàng cho đơn hàng ${orderId}:`, error.response?.data?.message || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể lấy danh sách mặt hàng',
+        data: [],
+      };
+    }
+  };
+
+  const updateOrderStatus = async (orderId, status) => {
+    if (!adminToken) {
+      return { success: false, message: 'Chưa đăng nhập' };
+    }
+    if (!orderId || !status) {
+      return { success: false, message: 'Thiếu orderId hoặc status' };
+    }
+    try {
+      const res = await axios.put(
+        `/api/admin/orders/update-status`,
+        { orderId, status },
+        {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }
+      );
       return {
         success: res.data.success,
-        message: res.data.message,
-        orderId: res.data.data?.orderId
+        message: res.data.message || 'Cập nhật trạng thái đơn hàng thành công',
+        data: res.data.data,
       };
     } catch (error) {
-      console.error(`Error deleting order ${orderId}:`, error.response?.data?.message || error.message);
-      throw {
+      console.error(`Lỗi khi cập nhật trạng thái đơn hàng ${orderId}:`, error.response?.data?.message || error.message);
+      return {
         success: false,
-        message: error.response?.data?.message || 'Không thể xóa đơn hàng',
-        error: error
+        message: error.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng',
       };
     }
   };
 
+  const deleteOrder = async (orderId) => {
+    if (!adminToken) {
+      return { success: false, message: 'Chưa đăng nhập' };
+    }
+    if (!orderId) {
+      return { success: false, message: 'Thiếu orderId' };
+    }
+    try {
+      const res = await axios.delete(`/api/admin/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      return {
+        success: res.data.success,
+        message: res.data.message || 'Xóa đơn hàng thành công',
+        data: { orderId: res.data.data?.orderId },
+      };
+    } catch (error) {
+      console.error(`Lỗi khi xóa đơn hàng ${orderId}:`, error.response?.data?.message || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Không thể xóa đơn hàng',
+      };
+    }
+  };
+
+  const getRevenueData = async () => {
+    if (!adminToken) {
+      return { success: false, message: 'Chưa đăng nhập', data: { revenue: [], topCustomers: [], bestSeller: null } };
+    }
+    try {
+      const res = await axios.get('/api/revenue', {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (res.data.error) {
+        throw new Error(res.data.error || 'Lỗi khi lấy dữ liệu doanh thu');
+      }
+      return {
+        success: true,
+        message: '', // Removed success message as requested
+        data: res.data || { revenue: [], topCustomers: [], bestSeller: null },
+      };
+    } catch (error) {
+      console.error('Lỗi khi lấy dữ liệu doanh thu:', error.response?.data?.error || error.message);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Không thể lấy dữ liệu doanh thu',
+        data: { revenue: [], topCustomers: [], bestSeller: null },
+      };
+    }
+  };
 
   const value = {
     adminToken,
@@ -212,8 +297,10 @@ export const AdminProvider = ({ children }) => {
     updateUser,
     deleteUser,
     getAllOrders,
-    // getOrderItems,
-    deleteOrder
+    getOrderItems,
+    updateOrderStatus,
+    deleteOrder,
+    getRevenueData,
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

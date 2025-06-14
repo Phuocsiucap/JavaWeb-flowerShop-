@@ -42,7 +42,7 @@ const RecentOrdersTable = ({ orders }) => {
               <tr key={order.orderId} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{order.orderId}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {order.customer?.name || order.userId || "Ẩn danh"}
+                  {order.customer?.name ? order.customer.name : "Ẩn danh"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(order.orderDate).toLocaleDateString('vi-VN')}

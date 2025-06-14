@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -529,17 +528,18 @@ export default function CheckoutPage() {
             </h2>
             <div className="space-y-4 mb-6">
               {selectedItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3">
+                <div key={item.id || item.productId} className="flex items-center gap-3">
                   <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
                     <img
-                      src={item.image}
+                      src={item.imageUrl || item.image || 'https://via.placeholder.com/60?text=No+Image'}
                       alt={item.name}
                       className="w-full h-full object-cover"
+                      onError={e => { e.target.src = 'https://via.placeholder.com/60?text=No+Image'; }}
                     />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-600">SL: {item.quantity}</p>
+                    <div className="font-semibold text-gray-800">{item.name}</div>
+                    <div className="text-gray-600">x {item.quantity}</div>
                   </div>
                   <div className="font-medium">{formatCurrency(item.price)}</div>
                 </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import AppLayout from "../../components/admin/Layout";
+import axios from "../../axiosInstance";
 
 import {
   Search,
@@ -43,24 +44,22 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:8080/flower_shop/products/"
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch products");
+      let data = [];
+      const cachedProducts = Cookies.get('admin_products');
+      if (cachedProducts) {
+        data = JSON.parse(cachedProducts);
+      } else {
+        const response = await axios.get("/products/");
+        data = response.data;
+        Cookies.set('admin_products', JSON.stringify(data));
       }
-
-      const data = await response.json();
       setProducts(data);
       setTotalProducts(data.length);
-
       // Extract unique categories
       const uniqueCategories = [
         ...new Set(data.map((product) => product.category)),
       ];
       setCategories(uniqueCategories);
-
       setLoading(false);
     } catch (err) {
       setError("Failed to fetch products. Please try again later.");

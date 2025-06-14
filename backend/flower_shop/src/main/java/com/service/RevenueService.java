@@ -1,6 +1,7 @@
 package com.service;
 
 import com.dao.OrderDAO;
+import com.dao.OrderItemDAO;
 import com.dao.ProductDAOImpl;
 import com.dao.UserDao;
 import com.dto.request.BestSellerDTO;
@@ -18,9 +19,11 @@ import java.util.*;
 
 public class RevenueService {
     private OrderDAO orderDAO;
+    private OrderItemDAO orderItemDAO;
 
     public RevenueService() {
         this.orderDAO = new OrderDAO();
+        this.orderItemDAO = new OrderItemDAO();
     }
 
     public List<RevenueDTO> getRevenueReport() throws SQLException {
@@ -46,7 +49,8 @@ public class RevenueService {
         result.sort(Comparator.comparing(RevenueDTO::getDate));
         return result;
     }
-	public List<TopCustomerDTO> getTopCustomersOfWeek() throws SQLException {
+
+    public List<TopCustomerDTO> getTopCustomersOfWeek() throws SQLException {
         // Lấy ngày đầu tuần (7 ngày trước)
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_YEAR, -6);
@@ -66,7 +70,7 @@ public class RevenueService {
         return result.size() > 3 ? result.subList(0, 3) : result;
     }
 
-	public BestSellerDTO getBestSellerOfWeek() throws SQLException {
+    public BestSellerDTO getBestSellerOfWeek() throws SQLException {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_YEAR, -6);
         Date weekAgo = cal.getTime();
@@ -74,8 +78,11 @@ public class RevenueService {
         Map<Integer, Integer> productCount = new HashMap<>();
         Map<Integer, String> productNameMap = new HashMap<>();
         ProductDAOImpl productDAO = new ProductDAOImpl();
+
         for (Order order : orders) {
-            for (OrderItem item : order.getItems()) {
+            // Lấy danh sách OrderItem từ OrderItemDAO
+            List<OrderItem> items = orderItemDAO.getOrderItemsByOrderId(order.getOrderId());
+            for (OrderItem item : items) {
                 int productId = item.getProductId();
                 int qty = item.getQuantity();
                 productCount.put(productId, productCount.getOrDefault(productId, 0) + qty);
@@ -84,6 +91,7 @@ public class RevenueService {
                 }
             }
         }
+
         int maxProductId = -1, maxQty = 0;
         for (Map.Entry<Integer, Integer> entry : productCount.entrySet()) {
             if (entry.getValue() > maxQty) {

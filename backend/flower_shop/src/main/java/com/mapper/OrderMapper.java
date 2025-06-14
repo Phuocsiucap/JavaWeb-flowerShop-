@@ -17,7 +17,6 @@ public class OrderMapper {
         map.put("totalAmount", order.getTotalAmount());
         map.put("status", order.getStatus());
         map.put("paymentMethod", order.getPaymentMethod());
-        map.put("items", OrderItemMapper.toMapList(order.getItems()));
         map.put("shippingAddress", order.getShippingAddress());
         map.put("phoneNumber", order.getPhoneNumber());
         return map;

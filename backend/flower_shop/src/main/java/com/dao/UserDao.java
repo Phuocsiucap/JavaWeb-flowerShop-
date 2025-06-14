@@ -53,7 +53,7 @@ public class UserDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
         return Optional.empty();
@@ -102,7 +102,7 @@ public class UserDao {
             throw new RuntimeException("Error saving user", e);
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -141,7 +141,7 @@ public class UserDao {
             throw new RuntimeException("Error updating user", e);
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -180,7 +180,7 @@ public class UserDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -204,7 +204,7 @@ public class UserDao {
             return false;
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -241,7 +241,7 @@ public class UserDao {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -269,7 +269,7 @@ public class UserDao {
             throw new RuntimeException("Error updating password", e);
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }

@@ -13,8 +13,12 @@ const TopProductsList = ({ products }) => {
           products.map((product, index) => (
             <li key={product.id} className="flex items-center justify-between">
               <div className="flex">
-                <div className="w-10 h-10 bg-pink-100 rounded-md flex items-center justify-center mr-3">
-                  <span className="text-pink-500">{index + 1}</span>
+                <div className="w-10 h-10 bg-pink-100 rounded-md flex items-center justify-center mr-3 overflow-hidden">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover" />
+                  ) : (
+                    <span className="text-pink-500">{index + 1}</span>
+                  )}
                 </div>
                 <div>
                   <p className="font-medium">{product.name}</p>

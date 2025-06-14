@@ -37,7 +37,7 @@ public class ProductDAOImpl implements ProductDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -73,7 +73,7 @@ public class ProductDAOImpl implements ProductDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -103,7 +103,7 @@ public class ProductDAOImpl implements ProductDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -134,7 +134,7 @@ public class ProductDAOImpl implements ProductDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 
@@ -160,7 +160,7 @@ public class ProductDAOImpl implements ProductDAO {
             return false;
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
     }
@@ -180,7 +180,7 @@ public class ProductDAOImpl implements ProductDAO {
             e.printStackTrace();
         } finally {
             if (conn != null) {
-                DatabaseConnection.returnConnection(conn);
+            	DatabaseConnection.closeConnection();
             }
         }
 

@@ -37,7 +37,7 @@ const SalesChart = ({ orders }) => {
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-lg font-bold mb-4">Thống kê doanh số (₫)</h2>
+      <h2 className="text-lg font-bold mb-4"></h2>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>

@@ -1,10 +1,12 @@
 package com.controller;
 
 import com.dao.OrderDAO;
+import com.dao.OrderItemDAO;
 import com.dto.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapper.OrderMapper;
 import com.model.Order;
+import com.model.OrderItem;
 import com.dto.request.UpdateOrderStatusRequest;
 
 import javax.servlet.ServletException;
@@ -13,6 +15,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,10 +23,11 @@ import java.util.Map;
 public class AdminOrderServlet extends HttpServlet {
 
     private final OrderDAO orderDAO = new OrderDAO();
+    private final OrderItemDAO orderItemDAO = new OrderItemDAO();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static class OrderStatus {
-    	public static final String PENDING = "Pending";
+        public static final String PENDING = "Pending";
         public static final String SHIPPING = "Shipping";
         public static final String SUCCESS = "Success";
         public static final String CANCELLED = "Cancelled";
@@ -53,12 +57,39 @@ public class AdminOrderServlet extends HttpServlet {
                     return;
                 }
 
+                Map<String, Object> data = new HashMap<>();
+                data.put("orders", OrderMapper.toMapList(orders));
                 sendJsonResponse(resp, ApiResponse.builder()
                         .success(true)
-                        .message("Orders retrieved successfully")
-                        .data(Map.of("orders", OrderMapper.toMapList(orders)))
+                        .message("Lấy danh sách đơn hàng thành công")
+                        .data(data)
                         .build(), HttpServletResponse.SC_OK);
                 return;
+            }
+
+            // Handle /<orderId>/items
+            String[] pathParts = pathInfo.split("/");
+            if (pathParts.length == 3 && "items".equals(pathParts[2])) {
+                try {
+                    int orderId = Integer.parseInt(pathParts[1]);
+                    List<OrderItem> items = orderItemDAO.getOrderItemsByOrderId(orderId);
+                    if (items.isEmpty()) {
+//                        sendErrorResponse(resp, "Không tìm thấy mặt hàng nào cho đơn hàng " + orderId, HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("items", items);
+                    sendJsonResponse(resp, ApiResponse.builder()
+                            .success(true)
+                            .message("Lấy danh sách mặt hàng thành công")
+                            .data(data)
+                            .build(), HttpServletResponse.SC_OK);
+                    return;
+                } catch (NumberFormatException e) {
+                    sendErrorResponse(resp, "Order ID không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
             }
 
             sendErrorResponse(resp, "Đường dẫn không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
@@ -93,6 +124,12 @@ public class AdminOrderServlet extends HttpServlet {
             int orderId = request.getOrderId();
             String newStatus = request.getStatus();
 
+            // Validate newStatus
+            if (!List.of(OrderStatus.PENDING, OrderStatus.SHIPPING, OrderStatus.SUCCESS, OrderStatus.CANCELLED).contains(newStatus)) {
+                sendErrorResponse(resp, "Trạng thái mới không hợp lệ: " + newStatus, HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
             Order order = orderDAO.getOrderById(orderId);
             if (order == null) {
                 sendErrorResponse(resp, "Đơn hàng không tồn tại", HttpServletResponse.SC_NOT_FOUND);
@@ -105,31 +142,32 @@ public class AdminOrderServlet extends HttpServlet {
                 return;
             }
 
-            // Kiểm tra trạng thái hiện tại và trạng thái mới
+            // Cho phép chuyển trạng thái: Pending → Shipping, Shipping → Success/Cancelled
             if (OrderStatus.SUCCESS.equals(currentStatus) || OrderStatus.CANCELLED.equals(currentStatus)) {
                 sendErrorResponse(resp, "Không thể thay đổi trạng thái đơn hàng đã hoàn tất hoặc đã hủy", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
-            if (!OrderStatus.PENDING.equals(currentStatus)) {
-                sendErrorResponse(resp, "Chỉ đơn hàng ở trạng thái 'Pending' mới có thể cập nhật trạng thái", HttpServletResponse.SC_BAD_REQUEST);
+            if (OrderStatus.PENDING.equals(currentStatus) && !OrderStatus.SHIPPING.equals(newStatus)) {
+                sendErrorResponse(resp, "Chỉ có thể chuyển từ 'Pending' sang 'Shipping'", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
-            if (!OrderStatus.SHIPPING.equals(newStatus)) {
-                sendErrorResponse(resp, "Trạng thái mới không hợp lệ: " + newStatus + ". Chỉ có thể chuyển sang 'Đang giao'", HttpServletResponse.SC_BAD_REQUEST);
+            if (OrderStatus.SHIPPING.equals(currentStatus) &&
+                !(OrderStatus.SUCCESS.equals(newStatus) || OrderStatus.CANCELLED.equals(newStatus))) {
+                sendErrorResponse(resp, "Chỉ có thể chuyển từ 'Shipping' sang 'Success' hoặc 'Cancelled'", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
-            // Ánh xạ trạng thái "Đang giao" thành "Shipping" khi lưu vào cơ sở dữ liệu
-            String dbStatus = OrderStatus.SHIPPING.equals(newStatus) ? "Shipping" : newStatus;
-
-            boolean updated = orderDAO.updateOrderStatus(orderId, dbStatus);
+            boolean updated = orderDAO.updateOrderStatus(orderId, newStatus);
             if (updated) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("orderId", orderId);
+                data.put("status", newStatus);
                 sendJsonResponse(resp, ApiResponse.builder()
                         .success(true)
                         .message("Cập nhật trạng thái thành công")
-                        .data(Map.of("orderId", orderId, "status", newStatus))
+                        .data(data)
                         .build(), HttpServletResponse.SC_OK);
             } else {
                 sendErrorResponse(resp, "Cập nhật trạng thái thất bại", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -157,13 +195,13 @@ public class AdminOrderServlet extends HttpServlet {
 
             String pathInfo = req.getPathInfo();
             if (pathInfo == null || pathInfo.equals("/")) {
-                sendErrorResponse(resp, "Order ID is required", HttpServletResponse.SC_BAD_REQUEST);
+                sendErrorResponse(resp, "Yêu cầu Order ID", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
             String[] pathParts = pathInfo.split("/");
             if (pathParts.length != 2) {
-                sendErrorResponse(resp, "Invalid Order ID", HttpServletResponse.SC_BAD_REQUEST);
+                sendErrorResponse(resp, "Order ID không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
@@ -171,33 +209,36 @@ public class AdminOrderServlet extends HttpServlet {
             try {
                 orderId = Integer.parseInt(pathParts[1]);
             } catch (NumberFormatException e) {
-                sendErrorResponse(resp, "Invalid Order ID format", HttpServletResponse.SC_BAD_REQUEST);
+                sendErrorResponse(resp, "Định dạng Order ID không hợp lệ", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
             Order order = orderDAO.getOrderById(orderId);
             if (order == null) {
-                sendErrorResponse(resp, "Order not found", HttpServletResponse.SC_NOT_FOUND);
+                sendErrorResponse(resp, "Không tìm thấy đơn hàng", HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
 
             if (OrderStatus.PENDING.equals(order.getStatus()) || OrderStatus.SHIPPING.equals(order.getStatus())) {
-                sendErrorResponse(resp, "Không thể xóa đơn hàng. Chỉ đơn hàng 'Thành công' hoặc 'Đã hủy' mới được xóa.", HttpServletResponse.SC_BAD_REQUEST);
+                sendErrorResponse(resp, "Không thể xóa đơn hàng. Chỉ đơn hàng 'Success' hoặc 'Cancelled' mới được xóa.", HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
             boolean deleted = orderDAO.deleteOrder(orderId);
             if (deleted) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("orderId", orderId);
                 sendJsonResponse(resp, ApiResponse.builder()
                         .success(true)
-                        .message("Order deleted successfully")
-                        .data(Map.of("orderId", orderId))
+                        .message("Xóa đơn hàng thành công")
+                        .data(data)
                         .build());
             } else {
-                sendErrorResponse(resp, "Order not found", HttpServletResponse.SC_NOT_FOUND);
+                sendErrorResponse(resp, "Không tìm thấy đơn hàng", HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (Exception e) {
-            sendErrorResponse(resp, "Failed to delete order: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            sendErrorResponse(resp, "Lỗi khi xóa đơn hàng: " + e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -210,11 +251,11 @@ public class AdminOrderServlet extends HttpServlet {
         resp.setStatus(HttpServletResponse.SC_OK);
     }
 
-    private void sendJsonResponse(HttpServletResponse response, Object data) throws IOException {
+    private void sendJsonResponse(HttpServletResponse response, ApiResponse data) throws IOException {
         sendJsonResponse(response, data, HttpServletResponse.SC_OK);
     }
 
-    private void sendJsonResponse(HttpServletResponse response, Object data, int status) throws IOException {
+    private void sendJsonResponse(HttpServletResponse response, ApiResponse data, int status) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.setStatus(status);
@@ -222,9 +263,11 @@ public class AdminOrderServlet extends HttpServlet {
     }
 
     private void sendErrorResponse(HttpServletResponse response, String message, int status) throws IOException {
+        Map<String, Object> data = new HashMap<>(); // Đảm bảo data không null
         ApiResponse errorResponse = ApiResponse.builder()
                 .success(false)
                 .message(message)
+                .data(data)
                 .build();
         sendJsonResponse(response, errorResponse, status);
     }
