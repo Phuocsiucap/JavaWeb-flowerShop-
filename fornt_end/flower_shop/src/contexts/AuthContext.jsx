@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }) => {
   // Lấy danh sách sản phẩm trong đơn hàng
   const getOrderItems = async (orderId) => {
     try {
-      const token = Cookies.get('token');
+      const token = Cookies.get('token') || Cookies.get('adminToken');
       if (!token) {
         throw new Error('Chưa đăng nhập');
       }

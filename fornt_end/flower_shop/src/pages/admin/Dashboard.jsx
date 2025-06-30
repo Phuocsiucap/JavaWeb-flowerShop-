@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Users, ShoppingBag, FileText, Settings, Package, TrendingUp } from 'lucide-react';
 import AppLayout from '../../components/admin/Layout';
@@ -9,8 +9,7 @@ import TopProductsList from '../../components/admin/dashboard/TopProductsList';
 import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTable';
 import StatsGrid from '../../components/admin/dashboard/StatsGrid';
 import axios from '../../axiosInstance';
-import Cookies from 'js-cookie';
-
+import { AuthContext } from '../../contexts/AuthContext';
 const Dashboard = () => {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [newCustomersToday, setNewCustomersToday] = useState(0);
@@ -27,19 +26,14 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const { getAllUsers, getAllOrders, getUserById, adminToken } = useAdmin();
+  const { getOrderItems } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
-        let usersArr = [];
-        const cachedUsers = Cookies.get('dashboard_users');
-        if (cachedUsers) {
-          usersArr = JSON.parse(cachedUsers);
-        } else {
-          const usersResponse = await getAllUsers();
-          usersArr = Array.isArray(usersResponse) ? usersResponse : [];
-          Cookies.set('dashboard_users', JSON.stringify(usersArr));
-        }
+        const usersResponse = await getAllUsers();
+        const usersArr = Array.isArray(usersResponse) ? usersResponse : [];
+        
         const customers = usersArr.filter((user) => user.role === 'customer');
         setTotalCustomers(customers.length);
 
@@ -82,22 +76,18 @@ const Dashboard = () => {
 
     const fetchOrdersData = async () => {
       try {
-        let ordersArr = [];
-        const cachedOrders = Cookies.get('dashboard_orders');
-        if (cachedOrders) {
-          ordersArr = JSON.parse(cachedOrders);
-        } else {
-          const ordersResponse = await getAllOrders();
-          ordersArr = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
-          Cookies.set('dashboard_orders', JSON.stringify(ordersArr));
-        }
-        let orders = ordersArr.map(order => ({
-          ...order,
-          orderDate: order.orderDate || order.createdAt || new Date().toISOString(),
-          totalAmount: order.totalAmount || 0,
-          userId: order.userId || null,
-          items: Array.isArray(order.items) ? order.items : [],
-        }));
+        const ordersResponse = await getAllOrders();
+        const ordersArr = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+        
+        let orders = await Promise.all(
+          ordersArr.map(async (order) => ({
+            ...order,
+            orderDate: order.orderDate || order.createdAt || new Date().toISOString(),
+            totalAmount: order.totalAmount || 0,
+            userId: order.userId || null,
+            items: order.orderId ? await getOrderItems(order.orderId) : [], // ✅ Đúng cú pháp
+          }))
+        );
 
         const today = new Date();
         const startOfToday = new Date(today.setHours(0, 0, 0, 0));
