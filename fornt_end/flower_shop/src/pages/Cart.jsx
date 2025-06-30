@@ -132,7 +132,13 @@ const Cart = () => {
                     <div className="flex-1 flex items-end justify-between text-sm">
                       <div className="flex items-center">
                         <button
-                          onClick={() => updateItemQuantity(item.productId, Math.max(1, item.quantity - 1))}
+                          onClick={() => {
+                            if (item.quantity === 1) {
+                              removeFromCart(item.productId);
+                            } else {
+                              updateItemQuantity(item.productId, item.quantity - 1);
+                            }
+                          }}
                           className="px-2 py-1 bg-gray-200 text-gray-700 rounded-l"
                         >
                           -

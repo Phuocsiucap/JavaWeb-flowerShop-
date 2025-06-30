@@ -29,6 +29,11 @@ const Dashboard = () => {
   const { getOrderItems } = useContext(AuthContext);
 
   useEffect(() => {
+    if (!adminToken || typeof adminToken !== 'string' || adminToken.trim() === '') {
+      setError('Chưa đăng nhập hoặc token không hợp lệ. Vui lòng đăng nhập lại.');
+      setIsLoading(false);
+      return;
+    }
     const fetchUsersData = async () => {
       try {
         const usersResponse = await getAllUsers();
@@ -111,11 +116,19 @@ const Dashboard = () => {
                 console.warn(`Error fetching user ${order.userId}:`, error);
               }
             }
+            // Map status to Vietnamese for consistency with OrdersPage
+            const statusMap = {
+              Pending: 'Đang xử lý',
+              Shipping: 'Đang giao',
+              Success: 'Thành công',
+              Cancelled: 'Đã hủy',
+            };
             return {
               ...order,
               createdAt: new Date(order.orderDate),
               totalPrice: order.totalAmount,
               customer,
+              status: statusMap[order.status] || order.status, // Ensure status is always in Vietnamese
             };
           })
         );
@@ -190,11 +203,6 @@ const Dashboard = () => {
     };
 
     const fetchData = async () => {
-      if (!adminToken) {
-        setError('Chưa đăng nhập');
-        return;
-      }
-      console.log('Admin token:', adminToken);
       setIsLoading(true);
       setError(null);
       try {
@@ -247,12 +255,12 @@ const Dashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Đã giao':
+      case 'Thành công':
         return 'bg-green-100 text-green-800';
-      case 'Đang giao':
-        return 'bg-blue-100 text-blue-800';
       case 'Đang xử lý':
         return 'bg-yellow-100 text-yellow-800';
+      case 'Đang giao':
+        return 'bg-blue-100 text-blue-800';
       case 'Đã hủy':
         return 'bg-red-100 text-red-800';
       default:

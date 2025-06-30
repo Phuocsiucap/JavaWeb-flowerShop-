@@ -37,7 +37,8 @@ export const CartProvider = ({ children }) => {
   }, []);
 
   // Thêm sản phẩm vào giỏ hàng
-  const addToCart = async (productId) => {
+  // Sửa lại để nhận quantity động
+  const addToCart = async (productId, quantity = 1) => {
      const token = Cookies.get('token');
      try {
        const response = await fetch('http://localhost:8080/flower_shop/api/cart/add', {
@@ -46,7 +47,7 @@ export const CartProvider = ({ children }) => {
            'Content-Type': 'application/json',
            Authorization: `Bearer ${token}`,
          },
-         body: JSON.stringify({ productId, quantity: 1 }),
+         body: JSON.stringify({ productId, quantity }),
        });
  
        if (!response.ok) {

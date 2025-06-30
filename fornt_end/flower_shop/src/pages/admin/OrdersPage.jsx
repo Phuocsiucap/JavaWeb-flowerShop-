@@ -65,10 +65,13 @@ const OrdersPage = () => {
       const detailedOrders = await Promise.all(
         ordersResponse.data.map(async (o) => {
           let customerName = 'Ẩn danh';
+          let customerAddress = '';
           if (o.userId) {
             const customerResponse = await getUserById(o.userId);
-            if (customerResponse && customerResponse.name) {
-              customerName = customerResponse.name;
+            if (customerResponse) {
+              customerName = customerResponse.name || 'Ẩn danh';
+              // Địa chỉ có thể nằm ở customerResponse.address hoặc customerResponse.shippingAddress
+              customerAddress = customerResponse.address || customerResponse.shippingAddress || '';
             }
           }
           let items = [];
@@ -99,6 +102,7 @@ const OrdersPage = () => {
           return {
             id: o.orderId,
             customer: customerName,
+            address: customerAddress,
             date: new Date(o.orderDate).toLocaleDateString('vi-VN'),
             status,
             payment: paymentMap[status],
@@ -107,7 +111,7 @@ const OrdersPage = () => {
           };
         })
       );
-      setOrders(detailedOrders);
+      setOrders(detailedOrders.sort((a, b) => b.id - a.id));
       
     } catch (err) {
       console.error('Lỗi khi lấy đơn hàng:', err);
@@ -434,6 +438,9 @@ const handleConfirmOrder = async (orderId) => {
                           Khách hàng
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
+                          Địa chỉ
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
                           Ngày đặt
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 tracking-wider">
@@ -455,6 +462,7 @@ const handleConfirmOrder = async (orderId) => {
                         <tr key={order.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-blue-600">{order.id}</td>
                           <td className="px-4 py-3 text-sm text-gray-700">{order.customer}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{order.address}</td>
                           <td className="px-4 py-3 text-sm text-gray-700">{order.date}</td>
                           <td className="px-4 py-3">
                             <span
@@ -515,7 +523,6 @@ const handleConfirmOrder = async (orderId) => {
             setSelectedOrder(null);
           }}
           order={selectedOrder}
-          onDeleteOrder={handleDeleteOrder}
           onConfirmOrder={handleConfirmOrder}
           formatPrice={formatPrice}
         />

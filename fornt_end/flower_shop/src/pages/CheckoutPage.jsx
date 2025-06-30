@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
@@ -8,11 +8,11 @@ import { CreditCard, Calendar, Lock, Truck, CheckCircle } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import axios from '../axiosInstance';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-
+import { AuthContext } from '../contexts/AuthContext';
 
 export default function CheckoutPage() {
   const { totalPrice, removeFromCart } = useCart();
+  const { currentUser, updateUserProfile, setInfo } = useContext(AuthContext);
   const [paymentInfo, setPaymentInfo] = useState({
     cardNumber: '',
     cardHolder: '',
@@ -42,6 +42,18 @@ export default function CheckoutPage() {
   //   (total, item) => total + item.price * item.quantity,
     
   // );
+
+  // Khi vào trang, nếu currentUser có dữ liệu thì tự động fill vào shippingInfo
+  useEffect(() => {
+    if (currentUser) {
+      setShippingInfo((prev) => ({
+        ...prev,
+        fullName: currentUser.name || '',
+        phone: currentUser.phone || '',
+        address: currentUser.address || '',
+      }));
+    }
+  }, [currentUser]);
 
   const handleShippingChange = (e) => {
     const { name, value } = e.target;
@@ -89,6 +101,21 @@ export default function CheckoutPage() {
     e.preventDefault();
     setOrderStatus('processing');
 
+    // Cập nhật thông tin user trước khi đặt hàng
+    try {
+      await updateUserProfile({
+        name: shippingInfo.fullName,
+        phone: shippingInfo.phone,
+        address: shippingInfo.address,
+        email: currentUser.email,
+      });
+      await setInfo(); // cập nhật lại context
+    } catch (err) {
+      // alert('Cập nhật thông tin cá nhân thất bại!');
+      setOrderStatus('done');
+      return;
+    }
+
     const orderData = {
       shippingAddress: `${shippingInfo.address}, ${shippingInfo.ward}, ${shippingInfo.district}, ${shippingInfo.city}`,
       phoneNumber: shippingInfo.phone,
@@ -126,6 +153,21 @@ export default function CheckoutPage() {
     }
   };
 
+  // Thêm nút cập nhật thông tin user
+  const handleUpdateUserInfo = async () => {
+    try {
+      await updateUserProfile({
+        name: shippingInfo.fullName,
+        phone: shippingInfo.phone,
+        address: shippingInfo.address,
+        email: currentUser.email,
+      });
+      await setInfo(); // cập nhật lại context
+      // alert('Cập nhật thông tin thành công!');
+    } catch (err) {
+      // alert('Cập nhật thông tin thất bại!');
+    }
+  };
 
   if (selectedItems.length === 0) {
     return <p>Không có sản phẩm nào được chọn để thanh toán.</p>;
@@ -239,7 +281,7 @@ export default function CheckoutPage() {
                   />
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+              <div className="mt-4 flex gap-3">
                 <button
                   onClick={handleNextStep}
                   className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"

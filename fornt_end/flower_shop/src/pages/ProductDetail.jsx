@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Minus, Plus, ArrowLeft } from 'lucide-react';
 import { BASE_URL } from '../config'
@@ -6,6 +6,8 @@ import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/layout/ScrollToTop';
 import Header from '../components/layout/Header';
 import ProductReviews from '../components/ui/ProductReviews'; // Import ProductReviews component
+import Cookies from 'js-cookie';
+import { CartContext } from '../contexts/CartContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -15,6 +17,7 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [inWishlist, setInWishlist] = useState(false);
+  const { addToCart } = useContext(CartContext);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -47,18 +50,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     try {
-      const response = await fetch('/api/cart/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ productId: id, quantity }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Không thể thêm vào giỏ hàng');
-      }
-
+      await addToCart(id, quantity); // Sử dụng context để cập nhật giỏ hàng toàn cục
       alert('Sản phẩm đã được thêm vào giỏ hàng!');
     } catch (err) {
       alert('Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau.');

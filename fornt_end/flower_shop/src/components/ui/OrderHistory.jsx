@@ -21,7 +21,9 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
   };
 
   useEffect(() => {
-    setFilteredOrders(orders);
+    // Sort orders by id descending before setting filteredOrders
+    const sortedOrders = [...orders].sort((a, b) => b.id - a.id);
+    setFilteredOrders(sortedOrders);
     if (orders && orders.length > 0) {
       console.log('Order statuses received from API:', orders.map((o) => ({ id: o.id, status: o.status })));
     }
@@ -78,17 +80,19 @@ const OrderHistory = ({ orders, fetchUserOrders }) => {
 
   const handleSearchByDate = () => {
     if (!searchDate) {
-      setFilteredOrders(orders);
+      // Reset to sorted orders by id descending
+      const sortedOrders = [...orders].sort((a, b) => b.id - a.id);
+      setFilteredOrders(sortedOrders);
       return;
     }
-    setFilteredOrders(
-      orders.filter((order) => {
-        const orderDate = order.date.includes('/')
-          ? order.date.split('/').reverse().join('-')
-          : order.date;
-        return orderDate.startsWith(searchDate);
-      })
-    );
+    // Filter and then sort by id descending
+    const filtered = orders.filter((order) => {
+      const orderDate = order.date.includes('/')
+        ? order.date.split('/').reverse().join('-')
+        : order.date;
+      return orderDate.startsWith(searchDate);
+    });
+    setFilteredOrders(filtered.sort((a, b) => b.id - a.id));
   };
 
   const formatPrice = (price) =>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { X, Trash2, CheckCircle } from 'lucide-react';
+import { X, CheckCircle } from 'lucide-react';
 
-const OrderDetailsModal = ({ isOpen, onClose, order, onDeleteOrder, onConfirmOrder, formatPrice }) => {
+const OrderDetailsModal = ({ isOpen, onClose, order, onConfirmOrder, formatPrice }) => {
   const placeholderImage = 'https://via.placeholder.com/50?text=No+Image';
 
   if (!isOpen || !order) return null;
@@ -99,14 +99,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onDeleteOrder, onConfirmOrd
                 Xác nhận
               </button>
             )}
-            <button
-              onClick={() => onDeleteOrder(order.id, order.status)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
-              title="Xóa đơn hàng"
-            >
-              <Trash2 size={16} className="mr-2" />
-              Xóa đơn hàng
-            </button>
+            {/* Đã bỏ nút xóa đơn hàng */}
           </div>
         </div>
       </div>

@@ -162,6 +162,7 @@ const ProductsPage = () => {
         throw new Error("Failed to save product");
       }
 
+      Cookies.remove('admin_products'); // Xóa cache sản phẩm sau khi thêm/cập nhật
       await fetchProducts();
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
@@ -189,6 +190,7 @@ const ProductsPage = () => {
 
       await Promise.all(deletePromises);
 
+      Cookies.remove('admin_products'); // Xóa cache sản phẩm sau khi xóa
       // Refresh products list
       await fetchProducts();
 
